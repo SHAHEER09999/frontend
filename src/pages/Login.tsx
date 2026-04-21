@@ -8,19 +8,21 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const { loginUser } = useAuth();
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     try {
       const { data, token } = await login(email, password);
 
       if (token) {
-        loginUser(data.data, token); // store globally
+        loginUser(data.data, token);
         navigate("/profile");
       }
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (err: any) {
+      setError(err.message);
     }
   };
   
@@ -29,6 +31,11 @@ const Login = () => {
       <div className="min-h-full flex flex-col items-center justify-center py-6 px-4">
         <div className="max-w-[480px] w-full">
           <div className="p-6 sm:p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            {error && (
+              <div className="bg-red-100 text-red-600 p-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
             <h1 className="text-slate-900 text-center text-3xl font-semibold">Welcome Back</h1>
             <form onSubmit={handleSubmit} className="mt-12 space-y-6">
               <div>
@@ -51,12 +58,7 @@ const Login = () => {
                 </div>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center">
-                  <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 shrink-0 text-blue-600 focus:ring-blue-500 border-slate-300 rounded" />
-                  <label htmlFor="remember-me" className="ml-3 block text-sm text-slate-900">
-                    Remember me
-                  </label>
-                </div>
+                
                 <div className="text-sm">
                   <a href="jajvascript:void(0);" className="text-blue-600 hover:underline font-semibold">
                     Forgot your password?

@@ -16,8 +16,22 @@ export const login = async (email: string, password: string) => {
     }),
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type");
+
+  let data;
+
+  if (contentType && contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    const text = await response.text();
+    throw new Error(text || "Login failed");
+  }
+
   const token = response.headers.get("Authorization");
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || "Login failed");
+  }
 
   return { data, token };
 };
@@ -42,5 +56,20 @@ export const signup = async (
     }),
   });
 
-  return response.json();
-};  
+  const contentType = response.headers.get("content-type");
+
+  let data;
+
+  if (contentType && contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    const text = await response.text();
+    throw new Error(text || "Signup failed");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.errors || data.message || "Signup failed");
+  }
+
+  return data;
+};

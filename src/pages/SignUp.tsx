@@ -7,20 +7,21 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("brand");
   const navigate = useNavigate();
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       const data = await signup(email, password, role);
-      console.log("Signup success:", data);
       navigate("/check-email", {
         state: { email: data?.data?.email ?? email }
       });
 
-    } catch (error) {
-      console.error("Signup error:", error);
+    } catch (err: any) {
+      setError(err.message);
     }
+    
   };
 
   return (
@@ -30,7 +31,11 @@ const SignUp = () => {
 
           {/* Card */}
           <div className="p-6 sm:p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
-
+            {error && (
+              <div className="bg-red-100 text-red-600 p-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
             <h1 className="text-slate-900 text-center text-3xl font-semibold">
               Create your account
             </h1>
