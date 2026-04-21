@@ -1,258 +1,134 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { logout } from "../utils/auth";
+import React from 'react';
+import { 
+  Instagram, 
+  Youtube, 
+  Facebook, 
+  Globe, 
+  MapPin, 
+  Edit3, 
+  Users 
+} from 'lucide-react';
 
-/* ================= API ================= */
-const API_URL = "http://localhost:3000";
-const getToken = () => localStorage.getItem("jwt");
-
-/* ================= TYPES ================= */
-interface Profile {
-  name: string;
-  description: string;
-  location_website: string;
-  image_url?: string;
-}
-
-/* ================= COMPONENT ================= */
-const ProfilePage: React.FC = () => {
-  const navigate = useNavigate();
-
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [edit, setEdit] = useState(false);
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [locationWebsite, setLocationWebsite] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-
-  /* ================= FETCH PROFILE ================= */
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch(`${API_URL}/profile`, {
-        headers: { Authorization: `${getToken()}` },
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        logout();
-        navigate("/login");
-        return;
-      }
-
-      const data = await res.json();
-
-      setProfile(data);
-      setName(data.name || "");
-      setDescription(data.description || "");
-      setLocationWebsite(data.location_website || "");
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= UPDATE PROFILE ================= */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const formData = new FormData();
-    formData.append("profile[name]", name);
-    formData.append("profile[description]", description);
-    formData.append("profile[location_website]", locationWebsite);
-
-    if (image) formData.append("profile[image]", image);
-
-    try {
-      const res = await fetch(`${API_URL}/profile`, {
-        method: "PATCH",
-        headers: { Authorization: `${getToken()}` },
-        body: formData,
-      });
-
-      const data = await res.json();
-      setProfile(data);
-      setEdit(false);
-      setImage(null);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  /* ================= DELETE ACCOUNT ================= */
-  const handleDelete = async () => {
-    const confirmDelete = window.confirm(
-      "Are you sure? This will permanently delete your account."
-    );
-
-    if (!confirmDelete) return;
-
-    try {
-      await fetch(`${API_URL}/users`, {
-        method: "DELETE",
-        headers: { Authorization: `${getToken()}` },
-      });
-
-      logout();
-      navigate("/login");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
-  if (!profile) return <div className="p-10 text-center">Profile not found</div>;
-
+const Profile: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-
-      {/* ================= HEADER ================= */}
-      <header className="h-16 bg-white shadow flex items-center justify-between px-8">
-        <button onClick={() => navigate("/")} className="text-xl font-extrabold text-gray-800 tracking-wide">
-          BrandFluencer
-        </button>
-
-        <button
-          onClick={() => {
-            logout();
-            navigate("/");
-          }}
-          className="h-10 px-6 rounded-full font-semibold
-          bg-gradient-to-r from-pink-500 to-rose-500
-          text-white hover:opacity-95 transition"
-        >
-          Logout
-        </button>
-      </header>
-
-      {/* ================= PROFILE CARD ================= */}
-      <div className="flex justify-center pt-16 pb-20">
-        <div className="bg-white rounded-3xl shadow-xl p-12 w-full max-w-4xl">
-
-          {/* TOP */}
-          <div className="flex gap-10 items-start">
-
-            {/* LEFT */}
-            <div className="flex flex-col items-center w-44">
-
-              <img
-                src={profile.image_url || "https://via.placeholder.com/150"}
-                className="w-40 h-40 rounded-full object-cover
-                border-4 border-white shadow-lg"
-              />
-              {edit && (
-                <input
-                  type="file"
-                  className="mt-4 text-sm"
-                  onChange={(e) =>
-                    setImage(e.target.files ? e.target.files[0] : null)
-                  }
-                />
-              )}
-
-              {/* LOCATION */}
-              {!edit ? (
-                <div className="mt-4 px-5 py-1 rounded-full bg-gray-100
-                text-sm text-gray-600 shadow-inner">
-                  📍 {profile.location_website || "No location"}
-                </div>
-              ) : (
-                <input
-                  value={locationWebsite}
-                  onChange={(e) => setLocationWebsite(e.target.value)}
-                  className="mt-4 w-full border rounded-full
-                  px-4 py-2 text-sm text-center"
-                  placeholder="Location / Website"
-                />
-              )}
-
-              
+    <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Blue Header Background */}
+      <div className="h-48 bg-gradient-to-r from-teal-500 to-pink-500 w-full" />
+      {/* Main Content Container */}
+      <div className="max-w-4xl mx-auto -mt-24 px-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row items-center gap-6 mb-10">
+            <div className="w-32 h-32 bg-gray-100 rounded-full border-4 border-white shadow-sm flex items-center justify-center text-gray-400 text-sm overflow-hidden">
+              No Image
             </div>
-
-            {/* RIGHT */}
-            <div className="flex-1">
-              {!edit ? (
-                <h2 className="text-4xl font-extrabold text-gray-900">
-                  {profile.name}
-                </h2>
-              ) : (
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full border rounded-xl px-5 py-3
-                  text-2xl font-semibold"
-                  placeholder="Your name"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* ABOUT */}
-          <div className="mt-12">
-            {!edit ? (
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-inner">
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                  About
-                </h3>
-                <p className="text-gray-700 text-lg leading-relaxed">
-                  {profile.description || "No bio added"}
-                </p>
-              </div>
-            ) : (
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={6}
-                className="w-full border rounded-2xl px-6 py-5
-                text-lg"
-                placeholder="Write something about yourself..."
-              />
-            )}
-          </div>
-
-          {/* ACTIONS */}
-          <div className="flex justify-between items-center mt-12 border-t pt-6">
-
-            {/* DELETE */}
-            <button
-              onClick={handleDelete}
-              className="text-red-600 hover:text-red-700
-              text-sm font-semibold"
-            >
-              Delete Account
-            </button>
-
-            {/* EDIT / SAVE */}
-            {!edit ? (
-              <button
-                onClick={() => setEdit(true)}
-                className="bg-slate-900 text-white
-                px-8 py-3 rounded-full font-semibold shadow
-                hover:bg-slate-800 transition"
-              >
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-3xl font-bold text-gray-800">Abdullah Ashfaq</h1>
+              <p className="text-gray-500 mb-4">shaheerahmed09999@gmail.com</p>
+              <button className="inline-flex items-center gap-2 bg-[#1a2332] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black transition-colors">
+                <Edit3 size={16} />
                 Edit Profile
               </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                className="bg-indigo-600 text-white
-                px-8 py-3 rounded-full font-semibold shadow
-                hover:bg-indigo-500 transition"
-              >
-                Save Changes
-              </button>
-            )}
+            </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            {/* Left Column: About & Socials */}
+            <div>
+              <section className="mb-8">
+                <h3 className="font-bold text-gray-800 mb-3">About Me</h3>
+                <div className="h-10 bg-gray-50 rounded-lg border border-gray-200 mb-4"></div>
+                
+                <div className="space-y-3 text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <Globe size={16} />
+                    <span>WEBSITE: <span className="text-blue-500 ml-1">No website added</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} />
+                    <span>LOCATION: <span className="ml-1">Location not specified</span></span>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Users size={18} className="text-gray-400" />
+                  <h3 className="font-bold text-gray-800">Social Accounts</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <SocialStatsCard icon={<Instagram className="text-pink-500" />} platform="Instagram" count="15.2k" />
+                  <SocialStatsCard icon={<Youtube className="text-red-500" />} platform="YouTube" count="50k" />
+                  <SocialStatsCard icon={<span className="font-bold">Tk</span>} platform="TikTok" count="120k" />
+                  <SocialStatsCard icon={<Facebook className="text-blue-600" />} platform="Facebook" count="8.5k" />
+                </div>
+              </section>
+            </div>
+
+            {/* Right Column: Categories */}
+            <div>
+              <h3 className="font-bold text-gray-800 mb-3">Categories</h3>
+              <div className="min-h-[150px] p-4 bg-white border border-gray-200 rounded-xl">
+                <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full border border-blue-100">
+                  Nature
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section: Services & Pricing */}
+          <section className="mt-12">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-gray-800 text-lg">Services & Pricing</h3>
+              <div className="text-[10px] font-bold text-gray-400 border px-2 py-0.5 rounded bg-gray-50">
+                CURRENCY: <span className="text-black">USD</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PricingCard platform="Instagram" items={['Story', 'Photo Post', 'Reel']} icon={<Instagram size={16} className="text-pink-500" />} />
+              <PricingCard platform="Facebook" items={['Story', 'Photo Post', 'Video / Reel']} icon={<Facebook size={16} className="text-blue-600" />} />
+              <PricingCard platform="YouTube" items={['YouTube Short', 'Dedicated Video']} icon={<Youtube size={16} className="text-red-500" />} />
+              <PricingCard platform="TikTok" items={['Video']} icon={<span className="font-bold text-xs">Tk</span>} />
+            </div>
+          </section>
         </div>
       </div>
     </div>
   );
 };
 
-export default ProfilePage;
+// --- Sub-components ---
+
+const SocialStatsCard = ({ icon, platform, count }: { icon: React.ReactNode, platform: string, count: string }) => (
+  <div className="p-4 border border-gray-200 rounded-xl flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-lg">{icon}</div>
+      <div>
+        <p className="text-sm font-bold text-gray-800">{platform}</p>
+        <p className="text-xs text-gray-500">{count} Followers</p>
+      </div>
+    </div>
+    <span className="text-[10px] italic text-gray-400">Not connected</span>
+  </div>
+);
+
+const PricingCard = ({ platform, items, icon }: { platform: string, items: string[], icon: React.ReactNode }) => (
+  <div className="border border-gray-200 rounded-xl p-5">
+    <div className="flex items-center gap-2 mb-4">
+      {icon}
+      <span className="font-bold text-sm text-gray-800">{platform}</span>
+    </div>
+    <div className="space-y-3">
+      {items.map((item) => (
+        <div key={item} className="flex justify-between items-center text-xs">
+          <span className="text-gray-600">{item}</span>
+          <div className="w-12 h-6 bg-gray-50 border border-gray-200 rounded"></div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export default Profile;

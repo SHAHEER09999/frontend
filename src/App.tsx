@@ -1,41 +1,33 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import Signup from "./pages/Signup";
-import Dashboard from "./Dashboard";
-import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
-import ProtectedRoute from "./protectedroutes.tsx/ProtectedRoutes";
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from "react-router";
+import Home from "./pages/Home";
+import RootLayout from "./layouts/RootLayout";
+import LoginLayout from "./layouts/LoginLayout";
+import SignUpLayout from "./layouts/SignUpLayout";
+import ProfileLayout from "./layouts/ProfileLayout";
+import CheckEmail from "./pages/CheckEmail";
+import EmailConfirmed from "./pages/EmailConfirmed";
 
 function App() {
+
+  const routers = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<RootLayout />} >
+        <Route index element={<Home />} />
+        <Route path="login" element={<LoginLayout />} />
+        <Route path="signup" element={<SignUpLayout />} />
+        <Route path="profile" element={<ProfileLayout />} />
+        <Route path="check-email" element={<CheckEmail />} />
+        <Route path="email-confirmed" element={<EmailConfirmed />} />
+
+      </Route>
+    )
+  )
+  
+
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<Signup />} />
-
-        {/* Influencer / Brand */}
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute allowedRoles={["influencer", "brand"]}>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Admin */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <RouterProvider router={routers} />
+    </>
   );
 }
 
