@@ -6,6 +6,7 @@ import SignUpLayout from "./layouts/SignUpLayout";
 import ProfileLayout from "./layouts/ProfileLayout";
 import CheckEmail from "./pages/CheckEmail";
 import EmailConfirmed from "./pages/EmailConfirmed";
+import ProtectedRoute from "./components/ProtectedRoutes";
 
 function App() {
 
@@ -15,9 +16,13 @@ function App() {
         <Route index element={<Home />} />
         <Route path="login" element={<LoginLayout />} />
         <Route path="signup" element={<SignUpLayout />} />
-        <Route path="profile" element={<ProfileLayout />} />
         <Route path="check-email" element={<CheckEmail />} />
         <Route path="email-confirmed" element={<EmailConfirmed />} />
+        <Route path="profile" element={
+          <ProtectedRoute>
+            <ProfileLayout />
+          </ProtectedRoute>
+        } />
 
       </Route>
     )

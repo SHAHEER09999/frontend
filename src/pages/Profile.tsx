@@ -8,8 +8,17 @@ import {
   Edit3, 
   Users 
 } from 'lucide-react';
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Profile: React.FC = () => {
+  const { logoutUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate("/login");
+  };
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Blue Header Background */}
@@ -26,6 +35,7 @@ const Profile: React.FC = () => {
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-3xl font-bold text-gray-800">Abdullah Ashfaq</h1>
               <p className="text-gray-500 mb-4">shaheerahmed09999@gmail.com</p>
+              <button onClick={handleLogout}>Logout</button>
               <button className="inline-flex items-center gap-2 bg-[#1a2332] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black transition-colors">
                 <Edit3 size={16} />
                 Edit Profile

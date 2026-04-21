@@ -1,20 +1,24 @@
-import { use, useState } from "react"
+import {  useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { login } from "../services/auth";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { loginUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const data = await login(email, password);
-      console.log("Login success:", data);
-      navigate("/profile");
+      const { data, token } = await login(email, password);
 
+      if (token) {
+        loginUser(data.data, token); // store globally
+        navigate("/profile");
+      }
     } catch (error) {
       console.error("Login error:", error);
     }

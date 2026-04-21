@@ -16,15 +16,10 @@ export const login = async (email: string, password: string) => {
     }),
   });
 
-  const data: LoginResponse = await response.json();
-
+  const data = await response.json();
   const token = response.headers.get("Authorization");
 
-  if (token) {
-    localStorage.setItem("token", token);
-  }
-
-  return data;
+  return { data, token };
 };
 
 export const signup = async (

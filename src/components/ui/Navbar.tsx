@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { UserCircle, Menu, X } from "lucide-react"; 
-
+import { useAuth } from "../../context/AuthContext";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  
+  const { isLoggedIn } = useAuth();
+
   // Change to true to test the logged-in state
-  const isLoggedIn = false; 
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
