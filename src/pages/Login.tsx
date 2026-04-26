@@ -33,7 +33,7 @@ const Login = () => {
           <div className="p-6 sm:p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
             {error && (
               <div className="bg-red-100 text-red-600 p-3 rounded-md text-sm">
-                {error}
+                {error}   
               </div>
             )}
             <h1 className="text-slate-900 text-center text-3xl font-semibold">Welcome Back</h1>
@@ -60,9 +60,7 @@ const Login = () => {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 
                 <div className="text-sm">
-                  <a href="jajvascript:void(0);" className="text-blue-600 hover:underline font-semibold">
-                    Forgot your password?
-                  </a>
+                  <Link to="/forgot-password" className="text-blue-600 hover:underline font-semibold">Forgot your password?</Link>
                 </div>
               </div>
 

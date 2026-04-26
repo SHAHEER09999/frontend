@@ -1,4 +1,4 @@
-import Profile from '../pages/Profile'
+import Profile from '../pages/UserDashboard'
 import { Outlet } from 'react-router'
 
 const ProfileLayout = () => {

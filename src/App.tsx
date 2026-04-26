@@ -7,6 +7,10 @@ import ProfileLayout from "./layouts/ProfileLayout";
 import CheckEmail from "./pages/CheckEmail";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import ProtectedRoute from "./components/ProtectedRoutes";
+import ResetPassword from "./pages/ResetPassword";
+import ForgotPassword from "./pages/ForgotPassword";
+import DeleteError from "./pages/AccountDeleteError";
+import AccountDeleted from "./pages/AccountDeleted";
 
 function App() {
 
@@ -18,12 +22,15 @@ function App() {
         <Route path="signup" element={<SignUpLayout />} />
         <Route path="check-email" element={<CheckEmail />} />
         <Route path="email-confirmed" element={<EmailConfirmed />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="profile" element={
           <ProtectedRoute>
             <ProfileLayout />
           </ProtectedRoute>
         } />
-
+        <Route path="/account-deleted" element={<AccountDeleted />} />
+        <Route path="/delete-error" element={<DeleteError />} />
       </Route>
     )
   )
