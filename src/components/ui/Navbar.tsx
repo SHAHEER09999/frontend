@@ -38,7 +38,7 @@ const Navbar = () => {
             <Link to="/influencers" className={navLinkStyles}>Influencers</Link>
 
             {isLoggedIn ? (
-              <Link to="/profile" className="flex items-center gap-2 group">
+              <Link to="/User-dashboard" className="flex items-center gap-2 group">
                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 group-hover:border-teal-400 transition-all">
                   <UserCircle className="text-gray-500 group-hover:text-teal-500" size={28} />
                 </div>

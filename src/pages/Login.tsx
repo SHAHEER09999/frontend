@@ -19,7 +19,7 @@ const Login = () => {
 
       if (token) {
         loginUser(data.data, token);
-        navigate("/profile");
+        navigate("/User-Dashboard");
       }
     } catch (err: any) {
       setError(err.message);
