@@ -1,27 +1,8 @@
-import {  Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
-
-const UserDashboardLayout = () => {
+const AdminDashboard = () => {
   const { logoutUser } = useAuth();
   const navigate = useNavigate();
-
-  const handleDeleteRequest = async () => {
-    try {
-      await axios.post(
-        "http://localhost:3000/users/request_delete",
-        {},
-        {
-          headers: {
-            Authorization: localStorage.getItem("token"),
-          },
-        }
-      );
-      alert("Confirmation email sent 📧");
-    } catch {
-      alert("Failed ❌");
-    }
-  };
 
   const handleLogout = async () => {
     await logoutUser();
@@ -37,11 +18,8 @@ const UserDashboardLayout = () => {
         {/* Top Links */}
         <div className="flex flex-col gap-3">
           {[
-            { name: "Profile", path: "profile" },
-            { name: "Campaigns", path: "campaigns" },
-            { name: "Chats", path: "chats" },
-            { name: "Meetings", path: "meetings" },
-            { name: "Accounts", path: "accounts" },
+            { name: "Users", path: "manageusers" },
+            { name: "Reports", path: "reports" }
           ].map((item) => (
             <Link
               key={item.name}
@@ -56,13 +34,6 @@ const UserDashboardLayout = () => {
         {/* Bottom Buttons */}
         <div className="flex flex-col gap-3">
           <button
-            onClick={handleDeleteRequest}
-            className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md"
-          >
-            Delete Account
-          </button>
-
-          <button
             onClick={handleLogout}
             className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md"
           >
@@ -75,6 +46,7 @@ const UserDashboardLayout = () => {
 
     </div>
   );
-};
+}
 
-export default UserDashboardLayout;
+export default AdminDashboard
+

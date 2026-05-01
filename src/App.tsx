@@ -16,6 +16,10 @@ import Campaigns from "./components/Campaigns";
 import Chats from "./components/Chats";
 import Meetings from "./components/ui/Meetings";
 import Accounts from "./components/Accounts";
+import AdminDashboard from "./pages/AdminDashboard";
+import Reports from "./components/ui/Reports";
+import ManageUser from "./components/ui/ManageUser";
+import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
 
 function App() {
 
@@ -40,6 +44,15 @@ function App() {
           <Route path="chats" element={<Chats />} />
           <Route path="meetings" element={<Meetings />} />
           <Route path="accounts" element={<Accounts />} />
+        </Route>
+        <Route path="Admin-Dashboard" element={
+          <ProtectedRoute role="admin">
+            <AdminDashboardLayout />
+          </ProtectedRoute>
+        } >
+          <Route index element={<ManageUser />} />
+          <Route path="manageusers" element={<ManageUser />} />
+          <Route path="reports" element={<Reports />} />
         </Route>
         <Route path="/account-deleted" element={<AccountDeleted />} />
         <Route path="/delete-error" element={<DeleteError />} />

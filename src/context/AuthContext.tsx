@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext,  useEffect,  useState } from "react";
 
 interface AuthContextType {
   user: any;
@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: any) => {
     setUser(userData);
     setToken(jwt);
     localStorage.setItem("token", jwt);
+    localStorage.setItem("user", JSON.stringify(userData)); 
   };
 
   const logoutUser = async () => {
@@ -39,7 +40,17 @@ export const AuthProvider = ({ children }: any) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
   };
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
+
+    if (storedUser && storedToken) {
+      setUser(JSON.parse(storedUser));
+      setToken(storedToken);
+    }
+  }, []);
 
   return (
     <AuthContext.Provider

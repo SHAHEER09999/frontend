@@ -19,7 +19,13 @@ const Login = () => {
 
       if (token) {
         loginUser(data.data, token);
-        navigate("/User-Dashboard");
+        const role = data.data.role;
+        if (role === "admin"){ 
+          navigate("/Admin-Dashboard");
+        }
+        else{
+          navigate("/User-Dashboard");
+        }
       }
     } catch (err: any) {
       setError(err.message);
