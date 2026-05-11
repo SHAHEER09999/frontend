@@ -1,78 +1,123 @@
-import {  Link, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
+import {
+  LayoutDashboard,
+  Briefcase,
+  MessageCircle,
+  Calendar,
+  DollarSign,
+  LogOut,
+  User,
+  Trash2,
+} from "lucide-react";
 
 const UserDashboardLayout = () => {
-  const { logoutUser } = useAuth();
+  const { logoutUser, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleDeleteRequest = async () => {
-    try {
-      await axios.post(
-        "http://localhost:3000/users/request_delete",
-        {},
-        {
-          headers: {
-            Authorization: localStorage.getItem("token"),
-          },
-        }
-      );
-      alert("Confirmation email sent 📧");
-    } catch {
-      alert("Failed ❌");
-    }
-  };
+  
 
   const handleLogout = async () => {
     await logoutUser();
     navigate("/");
   };
 
+  const menuItems = [
+    { name: "Dashboard", path: "profile", icon: LayoutDashboard },
+    { name: "Opportunities", path: "campaigns", icon: Briefcase },
+    { name: "Messages", path: "chats", icon: MessageCircle },
+    { name: "Meetings", path: "meetings", icon: Calendar },
+    { name: "Accounts", path: "accounts", icon: DollarSign },
+  ];
+
   return (
     <div className="flex h-[calc(100vh-64px)] bg-gray-100">
-      
-      {/* 🔹 Sidebar */}
-      <div className="w-64 bg-gray-600 text-white flex flex-col justify-between p-4">
 
-        {/* Top Links */}
-        <div className="flex flex-col gap-3">
-          {[
-            { name: "Profile", path: "profile" },
-            { name: "Campaigns", path: "campaigns" },
-            { name: "Chats", path: "chats" },
-            { name: "Meetings", path: "meetings" },
-            { name: "Accounts", path: "accounts" },
-          ].map((item) => (
-            <Link
-              key={item.name}
-              to={item.path}
-              className="bg-teal-500 hover:bg-pink-300 px-4 py-2 rounded-lg text-center font-medium transition-all duration-300 shadow-md"
-            >
-              {item.name}
-            </Link>
-          ))}
+      {/* 🔹 Desktop Sidebar */}
+      <div className="hidden md:flex w-64 bg-white border-r p-4 flex-col justify-between">
+        
+        {/* Top */}
+        <div>
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Dashboard</h2>
+
+          <div className="flex flex-col gap-2">
+            {menuItems.map((item) => {
+              const isActive = location.pathname.includes(item.path);
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+                    isActive
+                      ? "bg-blue-100 text-blue-600 font-semibold"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <Icon size={18} />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Bottom Buttons */}
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={handleDeleteRequest}
-            className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md"
-          >
-            Delete Account
-          </button>
+        {/* Bottom */}
+        <div className="border-t pt-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+              <User size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">
+                {user?.email?.split("@")[0]}
+              </p>
+              <p className="text-xs text-gray-500">{user?.email}</p>
+            </div>
+          </div>
 
           <button
             onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md"
+            className="flex items-center justify-center gap-2 w-full bg-gray-800 hover:bg-black text-white py-2 rounded-lg"
           >
+            <LogOut size={16} />
             Logout
           </button>
         </div>
       </div>
 
-     
+      
 
+      {/* 🔹 Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t flex justify-around items-center py-2 shadow-md z-50">
+        {menuItems.map((item) => {
+          const isActive = location.pathname.includes(item.path);
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.name}
+              to={item.path}
+              className={`flex flex-col items-center text-xs ${
+                isActive ? "text-blue-600" : "text-gray-500"
+              }`}
+            >
+              <Icon size={20} />
+            </Link>
+          );
+        })}
+
+        {/* Logout icon */}
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center text-gray-500"
+        >
+          <LogOut size={20} />
+        </button>
+      </div>
     </div>
   );
 };
