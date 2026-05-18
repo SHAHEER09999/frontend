@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Trash2, Youtube } from "lucide-react";
+import { Trash2, ExternalLink } from "lucide-react";
 import axios from "axios";
 
 const API_URL = "http://localhost:3000";
+
+const PLATFORMS = [
+  { key: "instagram", label: "Instagram", icon: "📸", baseUrl: "https://instagram.com/" },
+  { key: "tiktok", label: "TikTok", icon: "🎵", baseUrl: "https://tiktok.com/@" },
+];
 
 const Profile = () => {
   const [allCategories, setAllCategories] = useState<string[]>([]);
@@ -16,6 +21,16 @@ const Profile = () => {
   const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [youtubeError, setYoutubeError] = useState("");
 
+  // Instagram/TikTok state
+  const [socialInputs, setSocialInputs] = useState<Record<string, string>>({
+    instagram: "",
+    tiktok: "",
+  });
+  const [socialLoading, setSocialLoading] = useState<Record<string, boolean>>({
+    instagram: false,
+    tiktok: false,
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -24,38 +39,51 @@ const Profile = () => {
 
   const token = localStorage.getItem("token");
 
-  // Fetch categories
+  const authHeaders = {
+    Authorization: token,
+  };
+
   const fetchCategories = async () => {
     const res = await axios.get(`${API_URL}/categories/options`);
     setAllCategories(res.data);
   };
 
-  // Fetch profile
   const fetchProfile = async () => {
     const res = await axios.get(`${API_URL}/profile`, {
-      headers: { Authorization: token },
+      headers: authHeaders,
     });
 
-    setProfile(res.data);
+    const data = res.data;
+    setProfile(data);
 
     setFormData({
-      name: res.data.name || "",
-      description: res.data.description || "",
-      location_website: res.data.location_website || "",
+      name: data.name || "",
+      description: data.description || "",
+      location_website: data.location_website || "",
     });
 
     setSelectedCategories(
-      res.data.categories?.map((c: any) => c.categories) || []
+      data.categories?.map((c: any) => c.categories) || []
     );
 
-    // Pre-fill YouTube username if already connected
-    const youtubeAccount = res.data.social_accounts?.find(
-      (account: any) => account.platform?.toLowerCase() === "youtube"
+    const youtube = data.social_accounts?.find(
+      (a: any) => a.platform?.toLowerCase() === "youtube"
     );
-
-    if (youtubeAccount) {
-      setYoutubeUsername(`@${youtubeAccount.username}`);
+    if (youtube) {
+      setYoutubeUsername(`@${youtube.username}`);
     }
+
+    const instagram = data.social_accounts?.find(
+      (a: any) => a.platform?.toLowerCase() === "instagram"
+    );
+    const tiktok = data.social_accounts?.find(
+      (a: any) => a.platform?.toLowerCase() === "tiktok"
+    );
+
+    setSocialInputs({
+      instagram: instagram ? `@${instagram.username}` : "",
+      tiktok: tiktok ? `@${tiktok.username}` : "",
+    });
   };
 
   useEffect(() => {
@@ -63,7 +91,6 @@ const Profile = () => {
     fetchCategories();
   }, []);
 
-  // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -73,50 +100,47 @@ const Profile = () => {
     });
   };
 
-  // Update profile
   const handleUpdate = async () => {
     try {
-      const formDataToSend = new FormData();
+      const payload = new FormData();
 
-      formDataToSend.append("profile[name]", formData.name);
-      formDataToSend.append("profile[description]", formData.description);
-      formDataToSend.append(
-        "profile[location_website]",
-        formData.location_website
-      );
+      payload.append("profile[name]", formData.name);
+      payload.append("profile[description]", formData.description);
+      payload.append("profile[location_website]", formData.location_website);
 
       if (imageFile) {
-        formDataToSend.append("profile[image]", imageFile);
+        payload.append("profile[image]", imageFile);
       }
 
       selectedCategories.forEach((cat, index) => {
-        formDataToSend.append(`categories[${index}]`, cat);
+        payload.append(`categories[${index}]`, cat);
       });
 
-      await axios.put(`${API_URL}/profile`, formDataToSend, {
+      await axios.put(`${API_URL}/profile`, payload, {
         headers: {
-          Authorization: token,
+          ...authHeaders,
           "Content-Type": "multipart/form-data",
         },
       });
 
       setIsEditing(false);
-      fetchProfile();
-    } catch (err) {
-      console.error(err);
+      setYoutubeError("");
+      await fetchProfile();
+    } catch (error) {
+      console.error(error);
       alert("Update failed ❌");
     }
   };
 
-  // Request account deletion
   const handleDeleteRequest = async () => {
+    if (!window.confirm("Are you sure you want to request account deletion? An email confirmation link will be sent to you.")) {
+      return;
+    }
     try {
       await axios.post(
         `${API_URL}/users/request_delete`,
         {},
-        {
-          headers: { Authorization: token },
-        }
+        { headers: authHeaders }
       );
       alert("Confirmation email sent 📧");
     } catch {
@@ -124,12 +148,13 @@ const Profile = () => {
     }
   };
 
-  // Verify YouTube account and save to backend
   const handleVerifyYouTube = async () => {
     if (!youtubeUsername.trim()) {
       setYoutubeError("Please enter your YouTube handle");
       return;
     }
+
+    const normalizedUsername = youtubeUsername.replace(/^@/, "");
 
     try {
       setYoutubeLoading(true);
@@ -139,44 +164,133 @@ const Profile = () => {
         `${API_URL}/social_accounts/verify_and_create`,
         {
           platform: "youtube",
-          username: youtubeUsername,
+          username: normalizedUsername,
         },
         {
           headers: {
-            Authorization: token,
+            ...authHeaders,
             "Content-Type": "application/json",
           },
         }
       );
 
-      await fetchProfile(); // Refresh profile to show updated followers
+      await fetchProfile();
       alert("YouTube account verified successfully ✅");
     } catch (error: any) {
-      const message =
-        error.response?.data?.error ||
-        error.message ||
-        "YouTube verification failed";
-      setYoutubeError(message);
+      setYoutubeError(
+        error.response?.data?.error || "YouTube verification failed"
+      );
     } finally {
       setYoutubeLoading(false);
     }
   };
 
+  const saveSocialAccount = async (platform: string) => {
+    let rawUsername = socialInputs[platform]?.trim();
+
+    if (!rawUsername) {
+      alert(`Please enter ${platform} username`);
+      return;
+    }
+
+    const cleanUsername = rawUsername.replace(/^@/, "");
+    const existingAccount = getSocialAccount(platform);
+
+    try {
+      setSocialLoading((prev) => ({ ...prev, [platform]: true }));
+
+      if (existingAccount) {
+        await axios.put(
+          `${API_URL}/profiles/${profile.id}/social_accounts/${existingAccount.id}`,
+          {
+            social_account: {
+              username: cleanUsername,
+            },
+          },
+          {
+            headers: {
+              ...authHeaders,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        alert(`${platform} account updated successfully ✅`);
+      } else {
+        await axios.post(
+          `${API_URL}/profiles/${profile.id}/social_accounts`,
+          {
+            social_account: {
+              platform,
+              username: cleanUsername,
+              followers: "0",
+            },
+          },
+          {
+            headers: {
+              ...authHeaders,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        alert(`${platform} account added successfully ✅`);
+      }
+
+      await fetchProfile();
+    } catch (error: any) {
+      alert(
+        error.response?.data?.errors?.join(", ") ||
+          `Failed to save ${platform}`
+      );
+    } finally {
+      setSocialLoading((prev) => ({ ...prev, [platform]: false }));
+    }
+  };
+
+  const deleteSocialAccount = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this social account?")) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/profiles/${profile.id}/social_accounts/${id}`, {
+        headers: authHeaders,
+      });
+
+      await fetchProfile();
+      alert("Social account deleted successfully 🗑️");
+    } catch {
+      alert("Failed to delete social account ❌");
+    }
+  };
+
+  const getSocialAccount = (platform: string) => {
+    return profile?.social_accounts?.find(
+      (account: any) => account.platform?.toLowerCase() === platform
+    );
+  };
+
   if (!profile) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-500 font-medium">
+        Loading...
+      </div>
+    );
   }
 
-  const youtubeAccount = profile.social_accounts?.find(
-    (account: any) => account.platform?.toLowerCase() === "youtube"
-  );
+  const youtubeAccount = getSocialAccount("youtube");
+
+  const isProfileComplete =
+    profile.image_url &&
+    profile.description &&
+    selectedCategories.length > 0 &&
+    profile.location_website;
 
   return (
-    <div className="space-y-4">
-      {/* Top Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border flex flex-col md:flex-row justify-between gap-4">
+    <div className="h-full w-full overflow-y-auto space-y-6 pr-1 custom-scrollbar">
+      {/* Header View */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
         <div className="flex items-center gap-4">
-          {/* Profile Image */}
-          <div className="relative w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-sm text-gray-500">
+          <div className="relative w-20 h-20 rounded-2xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center text-xs font-semibold text-gray-400 text-center px-2 shadow-sm">
             {profile.image_url ? (
               <img
                 src={profile.image_url}
@@ -191,7 +305,7 @@ const Profile = () => {
               <input
                 type="file"
                 className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                onChange={(e) => {
                   if (e.target.files?.[0]) {
                     setImageFile(e.target.files[0]);
                   }
@@ -206,21 +320,21 @@ const Profile = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="text-2xl font-bold text-gray-800 border rounded px-2"
+                className="text-2xl font-bold text-[#0f172a] border border-gray-300 rounded-xl px-3 py-1"
               />
             ) : (
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-[#0f172a] tracking-tight">
                 {profile.name || "Unnamed User"}
               </h2>
             )}
           </div>
         </div>
 
-        <div className="md:ml-auto flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-5 py-2.5 rounded-2xl bg-slate-900 mb-2 text-white hover:bg-slate-800 transition font-semibold"
+              className="flex-1 sm:flex-initial bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200"
             >
               Edit Profile
             </button>
@@ -228,18 +342,17 @@ const Profile = () => {
             <>
               <button
                 onClick={handleUpdate}
-                className="px-5 py-2.5 rounded-2xl bg-green-600 text-white"
+                className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200"
               >
                 Save
               </button>
-
               <button
                 onClick={() => {
                   setIsEditing(false);
                   setYoutubeError("");
-                  fetchProfile(); // Reset unsaved changes
+                  fetchProfile();
                 }}
-                className="px-5 py-2.5 rounded-2xl bg-gray-400 text-white"
+                className="flex-1 sm:flex-initial bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200"
               >
                 Cancel
               </button>
@@ -248,184 +361,270 @@ const Profile = () => {
 
           <button
             onClick={handleDeleteRequest}
-            className="flex items-center justify-center gap-2 w-40 mb-2 bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-lg"
+            className="bg-red-500 hover:bg-red-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition duration-200"
           >
             <Trash2 size={16} />
-            Delete
+            <span className="hidden md:inline">Delete Account</span>
           </button>
         </div>
       </div>
 
-      {/* About */}
-      <div className="bg-white p-4 rounded-2xl border shadow-sm">
-        <h3 className="font-semibold text-gray-700 mb-2">About</h3>
-
-        {isEditing ? (
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            className="w-full border rounded p-2 text-sm"
-          />
-        ) : (
-          <p className="text-gray-500 text-sm">
-            {profile.description || "No bio"}
-          </p>
-        )}
-      </div>
-
-      {/* Categories */}
-      <div className="bg-white p-4 rounded-2xl border shadow-sm">
-        <h3 className="text-gray-500 text-sm mb-2">Categories</h3>
-
-        {isEditing ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {allCategories.length === 0 && (
-              <p className="text-sm text-gray-400">Loading categories...</p>
-            )}
-
-            {allCategories.map((cat) => {
-              const isChecked = selectedCategories.includes(cat);
-              const isDisabled =
-                !isChecked && selectedCategories.length >= 3;
-
-              return (
-                <label
-                  key={cat}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm ${
-                    isChecked
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-100"
-                  } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    disabled={isDisabled}
-                    onChange={() => {
-                      if (isChecked) {
-                        setSelectedCategories(
-                          selectedCategories.filter((c) => c !== cat)
-                        );
-                      } else if (selectedCategories.length < 3) {
-                        setSelectedCategories([...selectedCategories, cat]);
-                      }
-                    }}
-                  />
-                  {cat}
-                </label>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {selectedCategories.length > 0 ? (
-              selectedCategories.map((cat) => (
-                <span
-                  key={cat}
-                  className="text-sm bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full"
-                >
-                  {cat}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-sm">Not set</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Social Accounts */}
-      <div className="bg-white p-4 rounded-2xl border shadow-sm space-y-4">
-        <h3 className="font-semibold text-gray-700">Social Accounts</h3>
-
-        {/* YouTube Card */}
-        <div className="border rounded-xl p-4 bg-red-50">
-          <div className="flex items-center gap-2 mb-3">
-            <Youtube className="text-red-600" size={22} />
-            <span className="font-semibold text-gray-800">YouTube</span>
-          </div>
-
-          {/* Show connected account info if it exists */}
-          {youtubeAccount ? (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-3">
-              <p className="text-sm text-gray-700 mt-1">
-                Username: <strong>@{youtubeAccount.username}</strong>
-              </p>
-              <p className="text-sm text-gray-700">
-                Subscribers: <strong>
-                  {Number(youtubeAccount.followers || 0).toLocaleString()}
-                </strong>
-              </p>
-            </div>
+      {/* Grid Dashboard Workspace */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* About Card */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm min-h-[180px]">
+          <h3 className="font-bold text-[#0f172a] mb-3 text-base">About</h3>
+          {isEditing ? (
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full h-28 border border-gray-300 rounded-xl p-3 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           ) : (
-            !isEditing && (
-              <div className="bg-gray-100 px-3 py-2 rounded-lg text-gray-500 text-sm">
-                Not connected
-              </div>
-            )
-          )}
-
-          {/* Show verify form only in edit mode */}
-          {isEditing && (
-            <>
-              <div className="flex flex-col sm:flex-row gap-2 mt-3">
-                <input
-                  type="text"
-                  value={youtubeUsername}
-                  onChange={(e) => setYoutubeUsername(e.target.value)}
-                  placeholder="@YourChannelHandle"
-                  className="flex-1 border rounded-lg px-3 py-2"
-                />
-
-                <button
-                  onClick={handleVerifyYouTube}
-                  disabled={youtubeLoading}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {youtubeLoading ? "Verifying..." : "Verify"}
-                </button>
-              </div>
-
-              {youtubeError && (
-                <p className="text-red-500 text-sm mt-2">{youtubeError}</p>
-              )}
-            </>
+            <p className="text-gray-500 text-sm leading-relaxed font-medium">
+              {profile.description || "Add your bio in profile settings."}
+            </p>
           )}
         </div>
 
-        {/* Other Platforms */}
-        {[
-          { name: "Instagram" },
-          { name: "TikTok" },
-          { name: "Facebook" },
-        ].map((item) => (
-          <div
-            key={item.name}
-            className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-lg"
-          >
-            <span>{item.name}</span>
-            <span className="text-gray-500 text-sm">Not set</span>
+        {/* Categories Card */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm min-h-[180px]">
+          <h3 className="font-bold text-[#0f172a] mb-3 text-base">Categories</h3>
+          {isEditing ? (
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {allCategories.map((cat) => {
+                const isChecked = selectedCategories.includes(cat);
+                const isDisabled =
+                  !isChecked && selectedCategories.length >= 3;
+
+                return (
+                  <label
+                    key={cat}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition ${
+                      isChecked
+                        ? "bg-indigo-50 border-indigo-300 text-indigo-600"
+                        : "bg-gray-50 border-gray-200 text-gray-600"
+                    } ${isDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      disabled={isDisabled}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                      onChange={() => {
+                        if (isChecked) {
+                          setSelectedCategories(
+                            selectedCategories.filter((c) => c !== cat)
+                          );
+                        } else {
+                          setSelectedCategories([
+                            ...selectedCategories,
+                            cat,
+                          ]);
+                        }
+                      }}
+                    />
+                    {cat}
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {selectedCategories.length > 0 ? (
+                selectedCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="text-xs font-semibold text-[#4f46e5] bg-[#edf2ff] border border-[#dbe4ff] px-3 py-1.5 rounded-full"
+                  >
+                    {cat}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-400 text-sm">Not set</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Social Accounts Card */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4">
+          <h3 className="font-bold text-[#0f172a] text-base">Social Accounts</h3>
+
+          {/* YouTube Box Element */}
+          <div className="border border-gray-100 rounded-xl p-3 space-y-2 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm text-gray-700">YouTube</span>
+              <span className="text-xs text-gray-400">
+                {youtubeAccount ? (
+                  <a
+                    href={`https://youtube.com/${youtubeAccount.username.startsWith('@') ? '' : '@'}${youtubeAccount.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium"
+                  >
+                    @{youtubeAccount.username.replace(/^@/, "")}
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  "Not set"
+                )}
+              </span>
+            </div>
+
+            {youtubeAccount && (
+              <div className="text-[11px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-1 rounded-md inline-block">
+                Subscribers: {Number(youtubeAccount.followers || 0).toLocaleString()}
+              </div>
+            )}
+
+            {isEditing && (
+              <div className="space-y-2 pt-1 border-t border-dashed border-gray-100">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={youtubeUsername}
+                    onChange={(e) => setYoutubeUsername(e.target.value)}
+                    placeholder="@Handle"
+                    className="flex-1 text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-500"
+                  />
+                  <button
+                    onClick={handleVerifyYouTube}
+                    disabled={youtubeLoading}
+                    className="bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg hover:bg-red-700 transition"
+                  >
+                    {youtubeLoading ? "..." : "Verify"}
+                  </button>
+                </div>
+                {youtubeError && (
+                  <p className="text-[11px] text-red-500 font-medium">{youtubeError}</p>
+                )}
+                {youtubeAccount && (
+                  <button
+                    onClick={() => deleteSocialAccount(youtubeAccount.id)}
+                    className="text-red-500 hover:text-red-600 text-xs font-semibold block mt-1"
+                  >
+                    Disconnect Channel
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        ))}
+
+          {/* Instagram and TikTok Box Elements */}
+          {PLATFORMS.map((platform) => {
+            const account = getSocialAccount(platform.key);
+
+            return (
+              <div
+                key={platform.key}
+                className="border border-gray-100 rounded-xl p-3 space-y-2 bg-white"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm flex items-center gap-2 text-gray-700">
+                    <span>{platform.icon}</span>
+                    {platform.label}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {account ? (
+                      <a
+                        href={`${platform.baseUrl}${account.username.replace(/^@/, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium"
+                      >
+                        @{account.username.replace(/^@/, "")}
+                        <ExternalLink size={12} />
+                      </a>
+                    ) : (
+                      "Not set"
+                    )}
+                  </span>
+                </div>
+
+                {isEditing && (
+                  <div className="space-y-2 pt-1 border-t border-dashed border-gray-100">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={socialInputs[platform.key]}
+                        onChange={(e) =>
+                          setSocialInputs((prev) => ({
+                            ...prev,
+                            [platform.key]: e.target.value,
+                          }))
+                        }
+                        placeholder="@username"
+                        className="flex-1 text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+
+                      <button
+                        onClick={() => saveSocialAccount(platform.key)}
+                        disabled={socialLoading[platform.key]}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition"
+                      >
+                        {socialLoading[platform.key] ? "..." : account ? "Update" : "Add"}
+                      </button>
+                    </div>
+
+                    {account && (
+                      <button
+                        onClick={() => deleteSocialAccount(account.id)}
+                        className="text-red-500 hover:text-red-600 text-xs font-semibold block mt-1"
+                      >
+                        Disconnect Account
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Location */}
-      <div className="bg-white p-4 rounded-2xl border shadow-sm">
-        <h3 className="text-gray-500 text-sm">Location</h3>
-
-        {isEditing ? (
-          <input
-            name="location_website"
-            value={formData.location_website}
-            onChange={handleChange}
-            className="text-xl font-semibold border rounded px-2"
-          />
-        ) : (
-          <p className="text-xl font-semibold">
-            {profile.location_website || "Not set"}
+      {/* Bottom Metrics Cards Footer */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Categories
+          </h4>
+          <p className="text-3xl font-extrabold text-[#0f172a]">
+            {selectedCategories.length || 0}
           </p>
-        )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Location
+          </h4>
+          {isEditing ? (
+            <input
+              name="location_website"
+              value={formData.location_website}
+              onChange={handleChange}
+              className="text-base font-bold text-[#0f172a] border border-gray-300 rounded-lg px-2 py-0.5 w-full focus:outline-none"
+            />
+          ) : (
+            <p className="text-2xl font-extrabold text-[#0f172a] truncate">
+              {profile.location_website || "Not set"}
+            </p>
+          )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Profile Status
+          </h4>
+          <p
+            className={`text-2xl font-extrabold ${
+              isProfileComplete ? "text-emerald-600" : "text-[#0f172a]"
+            }`}
+          >
+            {isProfileComplete ? "Complete" : "Incomplete"}
+          </p>
+        </div>
       </div>
     </div>
   );

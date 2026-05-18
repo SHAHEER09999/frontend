@@ -16,24 +16,28 @@ const UserDashboardLayout = () => {
   const { logoutUser, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  
+  const role = user?.role; // Expected values: 'influencer', 'brand', etc.
 
   const handleLogout = async () => {
     await logoutUser();
     navigate("/");
   };
 
-  const menuItems = [
+  // Base menu items that everyone can see
+  const baseMenuItems = [
     { name: "Dashboard", path: "profile", icon: LayoutDashboard },
     { name: "Opportunities", path: "campaigns", icon: Briefcase },
     { name: "Messages", path: "chats", icon: MessageCircle },
     { name: "Meetings", path: "meetings", icon: Calendar },
-    { name: "Accounts", path: "accounts", icon: DollarSign },
   ];
 
+  // Dynamic composition: Only append 'Accounts' if the user is an influencer
+  const menuItems = role === "influencer" 
+    ? [...baseMenuItems, { name: "Accounts", path: "accounts", icon: DollarSign }]
+    : baseMenuItems;
+
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-gray-100">
+    <div className="flex h-[calc(100vh-64px)] bg-gray-100 pb-[60px] md:pb-0">
 
       {/* 🔹 Desktop Sidebar */}
       <div className="hidden md:flex w-64 bg-white border-r p-4 flex-col justify-between">

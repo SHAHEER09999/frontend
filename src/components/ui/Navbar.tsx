@@ -2,17 +2,19 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { UserCircle, Menu, X } from "lucide-react"; 
 import { useAuth } from "../../context/AuthContext";
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isLoggedIn , user  } = useAuth();
-  const role = user?.role;
-
-  // Change to true to test the logged-in state
+  const { isLoggedIn, user } = useAuth();
+  const role = user?.role; // Expected values: 'brand', 'influencer', 'admin', etc.
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
   // Common link styles to keep code DRY
   const navLinkStyles = "cursor-pointer hover:text-teal-500 transition-colors";
+
+  // Logic: Show to public visitors OR explicitly logged-in brands
+  const shouldShowInfluencersLink = !isLoggedIn || role === "brand";
 
   return (
     <nav className="relative bg-white border-b border-gray-100">
@@ -36,7 +38,11 @@ const Navbar = () => {
             <Link to="/about" className={navLinkStyles}>About</Link>
             <Link to="/features" className={navLinkStyles}>Features</Link>
             <Link to="/how-it-works" className={navLinkStyles}>How It Works</Link>
-            <Link to="/influencers" className={navLinkStyles}>Influencers</Link>
+            
+            {/* Conditionalized Influencers link for desktop */}
+            {shouldShowInfluencersLink && (
+              <Link to="/influencers" className={navLinkStyles}>Influencers</Link>
+            )}
 
             {isLoggedIn ? (
               <Link to={role === "admin" ? "/Admin-Dashboard" : "/User-Dashboard"} className="flex items-center gap-2 group">
@@ -73,11 +79,16 @@ const Navbar = () => {
           <Link to="/about" onClick={toggleMenu} className={navLinkStyles}>About</Link>
           <Link to="/features" onClick={toggleMenu} className={navLinkStyles}>Features</Link>
           <Link to="/how-it-works" onClick={toggleMenu} className={navLinkStyles}>How It Works</Link>
-          <Link to="/influencers" onClick={toggleMenu} className={navLinkStyles}>Influencers</Link>
+          
+          {/* Conditionalized Influencers link for mobile drawer */}
+          {shouldShowInfluencersLink && (
+            <Link to="/influencers" onClick={toggleMenu} className={navLinkStyles}>Influencers</Link>
+          )}
+          
           <hr className="my-2 border-gray-100" />
           
           {isLoggedIn ? (
-            <Link to="/profile" onClick={toggleMenu} className="flex items-center gap-3 py-2">
+            <Link to={role === "admin" ? "/Admin-Dashboard" : "/User-Dashboard"} onClick={toggleMenu} className="flex items-center gap-3 py-2">
               <UserCircle className="text-teal-500" size={24} />
               <span className="font-bold">My Profile</span>
             </Link>
