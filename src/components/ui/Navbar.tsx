@@ -1,23 +1,50 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserCircle, Menu, X } from "lucide-react"; 
 import { useAuth } from "../../context/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
-  const role = user?.role; // Expected values: 'brand', 'influencer', 'admin', etc.
+  const role = user?.role;
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
-  // Common link styles to keep code DRY
   const navLinkStyles = "cursor-pointer hover:text-teal-500 transition-colors";
 
-  // Logic: Show to public visitors OR explicitly logged-in brands
   const shouldShowInfluencersLink = !isLoggedIn || role === "brand";
 
+  // Handle smooth scroll to section on Home page
+  const handleNavClick = (sectionId: string) => {
+    setIsOpen(false);
+    if (window.location.pathname === "/") {
+      // If already on home page, just scroll
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } else {
+      // Navigate to home page with hash, then scroll after navigation
+      navigate(`/#${sectionId}`);
+      // Small delay to allow page to load
+      setTimeout(() => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+  };
+
+  // Handle click on "Influencers" - navigate to separate page
+  const handleInfluencersClick = () => {
+    setIsOpen(false);
+    navigate("/influencers");
+  };
+
   return (
-    <nav className="relative bg-white border-b border-gray-100">
+    <nav className="relative bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         {/* Logo */}
         <Link to="/" onClick={() => setIsOpen(false)}>
@@ -35,13 +62,21 @@ const Navbar = () => {
         <div className="hidden md:block">
           <ul className="flex items-center gap-x-8 text-sm font-medium text-gray-700">
             <Link to="/" className={navLinkStyles}>Home</Link>
-            <Link to="/about" className={navLinkStyles}>About</Link>
-            <Link to="/features" className={navLinkStyles}>Features</Link>
-            <Link to="/how-it-works" className={navLinkStyles}>How It Works</Link>
+            <button onClick={() => handleNavClick("about")} className={navLinkStyles}>
+              About
+            </button>
+            <button onClick={() => handleNavClick("features")} className={navLinkStyles}>
+              Features
+            </button>
+            <button onClick={() => handleNavClick("how-it-works")} className={navLinkStyles}>
+              How It Works
+            </button>
             
             {/* Conditionalized Influencers link for desktop */}
             {shouldShowInfluencersLink && (
-              <Link to="/influencers" className={navLinkStyles}>Influencers</Link>
+              <button onClick={handleInfluencersClick} className={navLinkStyles}>
+                Influencers
+              </button>
             )}
 
             {isLoggedIn ? (
@@ -76,13 +111,21 @@ const Navbar = () => {
       <div className={`md:hidden absolute w-full bg-white z-20 border-b transition-all duration-300 ease-in-out ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
         <ul className="flex flex-col p-6 gap-y-4 font-medium text-gray-700">
           <Link to="/" onClick={toggleMenu} className={navLinkStyles}>Home</Link>
-          <Link to="/about" onClick={toggleMenu} className={navLinkStyles}>About</Link>
-          <Link to="/features" onClick={toggleMenu} className={navLinkStyles}>Features</Link>
-          <Link to="/how-it-works" onClick={toggleMenu} className={navLinkStyles}>How It Works</Link>
+          <button onClick={() => handleNavClick("about")} className={navLinkStyles}>
+            About
+          </button>
+          <button onClick={() => handleNavClick("features")} className={navLinkStyles}>
+            Features
+          </button>
+          <button onClick={() => handleNavClick("how-it-works")} className={navLinkStyles}>
+            How It Works
+          </button>
           
           {/* Conditionalized Influencers link for mobile drawer */}
           {shouldShowInfluencersLink && (
-            <Link to="/influencers" onClick={toggleMenu} className={navLinkStyles}>Influencers</Link>
+            <button onClick={handleInfluencersClick} className={navLinkStyles}>
+              Influencers
+            </button>
           )}
           
           <hr className="my-2 border-gray-100" />

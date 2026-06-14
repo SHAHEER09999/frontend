@@ -20,6 +20,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Reports from "./components/ui/Reports";
 import ManageUser from "./components/ui/ManageUser";
 import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
+import InfluencersPage from "./pages/InfluencersPage";
 
 function App() {
 
@@ -33,6 +34,7 @@ function App() {
         <Route path="email-confirmed" element={<EmailConfirmed />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/influencers" element={<InfluencersPage />} />
         <Route path="User-Dashboard" element={
           <ProtectedRoute>
             <UserDashboardLayout />
