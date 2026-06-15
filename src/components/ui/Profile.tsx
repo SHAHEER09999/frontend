@@ -5,7 +5,7 @@ import axios from "axios";
 const API_URL = "http://localhost:3000";
 
 const PLATFORMS = [
-  { key: "instagram", label: "Instagram", icon: "📸", baseUrl: "https://instagram.com/" },
+  { key: "indigo", label: "Instagram", icon: "📸", baseUrl: "https://instagram.com/" },
   { key: "tiktok", label: "TikTok", icon: "🎵", baseUrl: "https://tiktok.com/@" },
 ];
 
@@ -39,7 +39,7 @@ const Profile = () => {
     age: "",
     delivery_time: "",
     gender: "",
-    price: "", // Unified global price
+    price: "", 
   });
 
   const token = localStorage.getItem("token");
@@ -61,7 +61,6 @@ const Profile = () => {
     const data = res.data;
     setProfile(data);
 
-    // Find the price from ANY existing social account to use globally
     const existingPrice = data.social_accounts?.find((a: any) => a.price)?.price || "";
 
     setFormData({
@@ -121,9 +120,13 @@ const Profile = () => {
       payload.append("profile[description]", formData.description);
       payload.append("profile[location_website]", formData.location_website);
       payload.append("profile[language]", formData.language);
-      payload.append("profile[age]", formData.age);
-      payload.append("profile[delivery_time]", formData.delivery_time);
-      payload.append("profile[gender]", formData.gender);
+      
+      // Guarding demographics update on submission logic
+      if (isInfluencer) {
+        payload.append("profile[age]", formData.age);
+        payload.append("profile[delivery_time]", formData.delivery_time);
+        payload.append("profile[gender]", formData.gender);
+      }
 
       if (imageFile) {
         payload.append("profile[image]", imageFile);
@@ -133,7 +136,6 @@ const Profile = () => {
         payload.append(`categories[${index}]`, cat);
       });
 
-      // 1. Update the main profile
       await axios.put(`${API_URL}/profile`, payload, {
         headers: {
           ...authHeaders,
@@ -141,8 +143,8 @@ const Profile = () => {
         },
       });
 
-      // 2. Sync the global price to ALL connected social accounts
-      if (profile.social_accounts && profile.social_accounts.length > 0) {
+      // Sync pricing metadata only if current user is an influencer
+      if (isInfluencer && profile.social_accounts && profile.social_accounts.length > 0) {
         await Promise.all(
           profile.social_accounts.map((acc: any) =>
             axios.put(
@@ -197,7 +199,7 @@ const Profile = () => {
         {
           platform: "youtube",
           username: normalizedUsername,
-          price: formData.price || null // Send global price
+          price: isInfluencer ? (formData.price || null) : null
         },
         {
           headers: {
@@ -238,7 +240,7 @@ const Profile = () => {
           {
             social_account: {
               username: cleanUsername,
-              price: formData.price || null // Send global price
+              price: isInfluencer ? (formData.price || null) : null
             },
           },
           {
@@ -257,7 +259,7 @@ const Profile = () => {
               platform,
               username: cleanUsername,
               followers: "0",
-              price: formData.price || null // Send global price
+              price: isInfluencer ? (formData.price || null) : null
             },
           },
           {
@@ -313,6 +315,9 @@ const Profile = () => {
   }
 
   const youtubeAccount = getSocialAccount("youtube");
+  
+  // 👈 Check role configuration variables
+  const isInfluencer = profile.user_role === "influencer";
 
   const isProfileComplete =
     profile.image_url &&
@@ -486,104 +491,110 @@ const Profile = () => {
             )}
           </div>
 
-          {/* Demographics & Details Card */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm flex-1">
-            <h3 className="font-bold text-[#0f172a] mb-3 text-base">Details</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-500">Age:</span>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    name="age"
-                    value={formData.age}
-                    onChange={handleChange}
-                    className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
-                    placeholder="e.g. 25"
-                  />
-                ) : (
-                  <span className="font-semibold text-gray-800">{profile.age || "-"}</span>
-                )}
-              </div>
-              
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-500">Gender:</span>
-                {isEditing ? (
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                ) : (
-                  <span className="font-semibold text-gray-800 capitalize">{profile.gender || "-"}</span>
-                )}
-              </div>
+          {/* Demographics & Details Card - 👈 Conditionally rendered for Influencers only */}
+          {isInfluencer && (
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm flex-1">
+              <h3 className="font-bold text-[#0f172a] mb-3 text-base">Details</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-gray-500">Age:</span>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleChange}
+                      className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
+                      placeholder="e.g. 25"
+                    />
+                  ) : (
+                    <span className="font-semibold text-gray-800">{profile.age || "-"}</span>
+                  )}
+                </div>
+                
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-gray-500">Gender:</span>
+                  {isEditing ? (
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  ) : (
+                    <span className="font-semibold text-gray-800 capitalize">{profile.gender || "-"}</span>
+                  )}
+                </div>
 
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-500">Language:</span>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="language"
-                    value={formData.language}
-                    onChange={handleChange}
-                    className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
-                    placeholder="e.g. English"
-                  />
-                ) : (
-                  <span className="font-semibold text-gray-800">{profile.language || "-"}</span>
-                )}
-              </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-gray-500">Language:</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="language"
+                      value={formData.language}
+                      onChange={handleChange}
+                      className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
+                      placeholder="e.g. English"
+                    />
+                  ) : (
+                    <span className="font-semibold text-gray-800">{profile.language || "-"}</span>
+                  )}
+                </div>
 
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-500">Delivery:</span>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    name="delivery_time"
-                    value={formData.delivery_time}
-                    onChange={handleChange}
-                    className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
-                    placeholder="e.g. 2 Days"
-                  />
-                ) : (
-                  <span className="font-semibold text-gray-800">{profile.delivery_time  || "-"} days</span>
-                )}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-gray-500">Delivery:</span>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      name="delivery_time"
+                      value={formData.delivery_time}
+                      onChange={handleChange}
+                      className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
+                      placeholder="e.g. 2 Days"
+                    />
+                  ) : (
+                    <span className="font-semibold text-gray-800">{profile.delivery_time  || "-"} days</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Social Accounts Card */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4">
           
-          {/* Header with Unified Price Display/Input */}
+          {/* Header with Unified Price Display/Input - 👈 Conditionally rendered for Influencers only */}
           <div className="flex justify-between items-center border-b border-gray-100 pb-2">
             <h3 className="font-bold text-[#0f172a] text-base">Social Accounts</h3>
-            {isEditing ? (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-bold text-gray-500">$</span>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  placeholder="Price"
-                  className="w-20 text-xs font-semibold border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-            ) : (
-              formData.price && (
-                <span className="text-sm font-extrabold text-[#4f46e5] bg-[#edf2ff] border border-[#dbe4ff] px-2.5 py-1 rounded-xl shadow-sm">
-                  ${Number(formData.price).toFixed(2)}
-                </span>
-              )
+            {isInfluencer && (
+              <>
+                {isEditing ? (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-gray-500">$</span>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      placeholder="Price"
+                      className="w-20 text-xs font-semibold border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                ) : (
+                  formData.price && (
+                    <span className="text-sm font-extrabold text-[#4f46e5] bg-[#edf2ff] border border-[#dbe4ff] px-2.5 py-1 rounded-xl shadow-sm">
+                      ${Number(formData.price).toFixed(2)}
+                    </span>
+                  )
+                )}
+              </>
             )}
           </div>
 

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
-
 // --- Types ---
 type Campaign = {
   id: number;
@@ -38,6 +37,9 @@ const Meetings: React.FC = () => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [brandCampaigns, setBrandCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Toggle form visibility
+  const [showForm, setShowForm] = useState(false);
 
   // --- Brand Form State ---
   const [campaignId, setCampaignId] = useState('');
@@ -112,6 +114,7 @@ const Meetings: React.FC = () => {
       setDateTime('');
       setLocationLink('');
       setNotes('');
+      setShowForm(false); // Hide the form automatically after creation
       alert('Meeting created successfully! 🎉');
     } catch (error) {
       console.error('Failed to create meeting', error);
@@ -163,80 +166,92 @@ const Meetings: React.FC = () => {
         {/* ========================================= */}
         {role === 'brand' && (
           <>
-            <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
               <h1 className="text-2xl md:text-3xl font-extrabold text-[#0f172a] tracking-tight">Manage Meetings</h1>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className={`font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200 shadow-sm ${
+                  showForm 
+                    ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }`}
+              >
+                {showForm ? 'Cancel' : 'Create Meeting'}
+              </button>
             </div>
 
-            {/* Create Meeting Form */}
-            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-              <h2 className="font-bold text-[#0f172a] mb-4 text-lg">Schedule a Meeting</h2>
-              <form onSubmit={createMeeting} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Select Campaign</label>
-                    <select
-                      value={campaignId}
-                      onChange={(e) => setCampaignId(e.target.value)}
-                      required
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                    >
-                      <option value="" disabled>Select a campaign...</option>
-                      {brandCampaigns.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+            {/* Conditionally Render Create Meeting Form */}
+            {showForm && (
+              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm transition duration-300">
+                <h2 className="font-bold text-[#0f172a] mb-4 text-lg">Schedule a Meeting</h2>
+                <form onSubmit={createMeeting} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Select Campaign</label>
+                      <select
+                        value={campaignId}
+                        onChange={(e) => setCampaignId(e.target.value)}
+                        required
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      >
+                        <option value="" disabled>Select a campaign...</option>
+                        {brandCampaigns.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Meeting Type</label>
+                      <select
+                        value={meetingType}
+                        onChange={(e) => setMeetingType(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      >
+                        <option value="online">Online</option>
+                        <option value="physical">Physical</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        value={dateTime}
+                        onChange={(e) => setDateTime(e.target.value)}
+                        required
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Link or Location Address</label>
+                      <input
+                        type="text"
+                        placeholder="Zoom link or Cafe Name"
+                        value={locationLink}
+                        onChange={(e) => setLocationLink(e.target.value)}
+                        required
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Notes / Purpose</label>
+                      <textarea
+                        placeholder="What is this meeting about?"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        required
+                        rows={3}
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Meeting Type</label>
-                    <select
-                      value={meetingType}
-                      onChange={(e) => setMeetingType(e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                    >
-                      <option value="online">Online</option>
-                      <option value="physical">Physical</option>
-                    </select>
+                  <div className="pt-2 flex justify-end">
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200">
+                      Schedule Meeting
+                    </button>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      value={dateTime}
-                      onChange={(e) => setDateTime(e.target.value)}
-                      required
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Link or Location Address</label>
-                    <input
-                      type="text"
-                      placeholder="Zoom link or Cafe Name"
-                      value={locationLink}
-                      onChange={(e) => setLocationLink(e.target.value)}
-                      required
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                    />
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Notes / Purpose</label>
-                    <textarea
-                      placeholder="What is this meeting about?"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      required
-                      rows={3}
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none"
-                    />
-                  </div>
-                </div>
-                <div className="pt-2 flex justify-end">
-                  <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200">
-                    Schedule Meeting
-                  </button>
-                </div>
-              </form>
-            </div>
+                </form>
+              </div>
+            )}
 
             {/* Brand Meetings List */}
             <div className="space-y-4">

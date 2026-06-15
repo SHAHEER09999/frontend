@@ -37,6 +37,9 @@ const Campaigns: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // --- Toggle State for Form Visibility ---
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
   // --- Brand Form State ---
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState('instagram');
@@ -127,6 +130,7 @@ const Campaigns: React.FC = () => {
       setPlatform('instagram');
       setBudget('');
       setDescription('');
+      setShowCreateForm(false); // Hide form automatically after creation
     } catch (error) {
       console.error('Failed to create campaign', error);
       alert('Error creating campaign. Please check your inputs.');
@@ -159,6 +163,14 @@ const Campaigns: React.FC = () => {
     }
   };
 
+  const handleCancelCreate = () => {
+    setShowCreateForm(false);
+    setName('');
+    setPlatform('instagram');
+    setBudget('');
+    setDescription('');
+  };
+
   // --- Rendering ---
   if (loading) {
     return (
@@ -177,73 +189,90 @@ const Campaigns: React.FC = () => {
         {/* ========================================= */}
         {role === 'brand' && (
           <>
-            <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center justify-between pb-2 gap-4">
               <h1 className="text-2xl md:text-3xl font-extrabold text-[#0f172a] tracking-tight">
                 Manage Your Campaigns
               </h1>
+              {!showCreateForm && (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200 shadow-sm whitespace-nowrap"
+                >
+                  Create Campaign
+                </button>
+              )}
             </div>
             
-            {/* Create Campaign Card */}
-            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-              <h2 className="font-bold text-[#0f172a] mb-4 text-lg">Create New Campaign</h2>
-              <form onSubmit={createCampaign} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Campaign Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g., Summer Product Launch" 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                      required 
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                    />
+            {/* Create Campaign Card - Conditional Render */}
+            {showCreateForm && (
+              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm animate-fadeIn">
+                <h2 className="font-bold text-[#0f172a] mb-4 text-lg">Create New Campaign</h2>
+                <form onSubmit={createCampaign} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Campaign Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g., Summer Product Launch" 
+                        value={name} 
+                        onChange={(e) => setName(e.target.value)} 
+                        required 
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Budget ($)</label>
+                      <input 
+                        type="number" 
+                        placeholder="e.g., 500" 
+                        value={budget} 
+                        onChange={(e) => setBudget(e.target.value)} 
+                        required 
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Platform</label>
+                      <select 
+                        value={platform} 
+                        onChange={(e) => setPlatform(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                      >
+                        <option value="instagram">Instagram</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="tiktok">TikTok</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-xs font-semibold text-gray-600 uppercase">Description</label>
+                      <textarea 
+                        placeholder="Describe what you are looking for..." 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)} 
+                        required 
+                        rows={4} 
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Budget ($)</label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g., 500" 
-                      value={budget} 
-                      onChange={(e) => setBudget(e.target.value)} 
-                      required 
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                    />
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Platform</label>
-                    <select 
-                      value={platform} 
-                      onChange={(e) => setPlatform(e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button 
+                      type="button"
+                      onClick={handleCancelCreate}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm px-5 py-3 rounded-xl transition duration-200"
                     >
-                      <option value="instagram">Instagram</option>
-                      <option value="youtube">YouTube</option>
-                      <option value="tiktok">TikTok</option>
-                    </select>
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200"
+                    >
+                      Publish Campaign
+                    </button>
                   </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Description</label>
-                    <textarea 
-                      placeholder="Describe what you are looking for..." 
-                      value={description} 
-                      onChange={(e) => setDescription(e.target.value)} 
-                      required 
-                      rows={4} 
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none"
-                    />
-                  </div>
-                </div>
-                <div className="pt-2 flex justify-end">
-                  <button 
-                    type="submit" 
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200"
-                  >
-                    Publish Campaign
-                  </button>
-                </div>
-              </form>
-            </div>
+                </form>
+              </div>
+            )}
 
             {/* Active Campaigns List */}
             <div className="space-y-4">
