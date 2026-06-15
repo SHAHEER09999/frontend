@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-
+import { useNavigate } from "react-router-dom"; 
 interface Influencer {
   id: number;
   name: string;
@@ -20,7 +20,7 @@ const API_URL = "http://localhost:3000";
 const InfluencersPage = () => {
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [filterOptions, setFilterOptions] = useState<any>({});
-
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     category: "",
     gender: "",
@@ -221,6 +221,7 @@ const InfluencersPage = () => {
             return (
               <div
                 key={influencer.id}
+                onClick={() => navigate(`/ShowProfile/${influencer.id}`)} // <-- Add onClick and Route
                 className="group bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col"
               >
                 {/* Compact Image Container */}

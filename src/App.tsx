@@ -21,6 +21,7 @@ import Reports from "./components/ui/Reports";
 import ManageUser from "./components/ui/ManageUser";
 import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
 import InfluencersPage from "./pages/InfluencersPage";
+import ShowProfile from "./components/ShowProfile";
 
 function App() {
 
@@ -35,6 +36,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/influencers" element={<InfluencersPage />} />
+        <Route path="/ShowProfile/:id" element={<ShowProfile />} />
         <Route path="User-Dashboard" element={
           <ProtectedRoute>
             <UserDashboardLayout />
