@@ -5,7 +5,7 @@ import axios from "axios";
 const API_URL = "http://localhost:3000";
 
 const PLATFORMS = [
-  { key: "indigo", label: "Instagram", icon: "📸", baseUrl: "https://instagram.com/" },
+  { key: "instagram", label: "Instagram", icon: "📸", baseUrl: "https://instagram.com/" },
   { key: "tiktok", label: "TikTok", icon: "🎵", baseUrl: "https://tiktok.com/@" },
 ];
 
@@ -121,7 +121,6 @@ const Profile = () => {
       payload.append("profile[location_website]", formData.location_website);
       payload.append("profile[language]", formData.language);
       
-      // Guarding demographics update on submission logic
       if (isInfluencer) {
         payload.append("profile[age]", formData.age);
         payload.append("profile[delivery_time]", formData.delivery_time);
@@ -143,7 +142,6 @@ const Profile = () => {
         },
       });
 
-      // Sync pricing metadata only if current user is an influencer
       if (isInfluencer && profile.social_accounts && profile.social_accounts.length > 0) {
         await Promise.all(
           profile.social_accounts.map((acc: any) =>
@@ -316,8 +314,8 @@ const Profile = () => {
 
   const youtubeAccount = getSocialAccount("youtube");
   
-  // 👈 Check role configuration variables
-  const isInfluencer = profile.user_role === "influencer";
+  // 👇 FIXED CONFIGURATION FOR ROLES HERE 👇
+  const isInfluencer = profile.role === "influencer" || profile.user_role === "influencer";
 
   const isProfileComplete =
     profile.image_url &&
@@ -491,7 +489,7 @@ const Profile = () => {
             )}
           </div>
 
-          {/* Demographics & Details Card - 👈 Conditionally rendered for Influencers only */}
+          {/* Demographics & Details Card */}
           {isInfluencer && (
             <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm flex-1">
               <h3 className="font-bold text-[#0f172a] mb-3 text-base">Details</h3>
@@ -570,7 +568,7 @@ const Profile = () => {
         {/* Social Accounts Card */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4">
           
-          {/* Header with Unified Price Display/Input - 👈 Conditionally rendered for Influencers only */}
+          {/* Header with Unified Price Display/Input */}
           <div className="flex justify-between items-center border-b border-gray-100 pb-2">
             <h3 className="font-bold text-[#0f172a] text-base">Social Accounts</h3>
             {isInfluencer && (

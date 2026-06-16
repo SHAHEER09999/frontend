@@ -19,6 +19,7 @@ interface Category {
 
 interface InfluencerProfile {
   id: number;
+  user_id: number;
   name: string;
   age: number;
   gender: string;
@@ -80,19 +81,55 @@ const ShowProfile = () => {
     setShowReportBox(true); // Open the modal
   };
 
-  // Updates state by appending new files to the existing array
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const newFiles = Array.from(e.target.files);
     setReportFiles((prevFiles) => [...prevFiles, ...newFiles]);
-    
-    // Reset the input value so the user can select the same file again if needed
     e.target.value = ""; 
   };
 
-  // Allows the user to remove a specific file they attached by mistake
   const removeFile = (indexToRemove: number) => {
     setReportFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleChat = async () => {
+    if (!checkAuth()) return;
+    if (!profile) {
+      alert("Profile not loaded yet.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const formattedToken = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
+      const response = await axios.post(
+        `${API_URL}/conversations`,
+        {
+          influencer_id: profile.user_id // ✅ Changed from profile.id to profile.user_id
+        },
+        {
+          headers: {
+            Authorization: formattedToken,
+            Accept: "application/json"
+          }
+        }
+      );
+
+      if (response.data && response.data.id) {
+        navigate(`/User-Dashboard/chats/${response.data.id}`);
+      } else {
+        console.error("Backend returned an empty conversation ID:", response.data);
+        alert("Failed to initialize chat session properly.");
+      }
+    } catch (error: any) {
+      console.error("Chat initiation failed:", error);
+      if (error.response?.data?.errors) {
+        alert(`Unable to start chat: ${error.response.data.errors.join(", ")}`);
+      } else {
+        alert("Unable to start chat. Please try again.");
+      }
+    }
   };
 
   const submitReport = async () => {
@@ -105,8 +142,9 @@ const ShowProfile = () => {
 
     try {
       const token = localStorage.getItem("token");
-
-      // Use FormData because we are uploading files/images
+      // ✅ Handle Bearer formatting cleanly
+      const formattedToken = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      
       const formData = new FormData();
       formData.append("description", reportText);
 
@@ -114,21 +152,19 @@ const ShowProfile = () => {
         formData.append("images[]", file);
       });
 
-      // Hit the specific nested backend route for reports
       await axios.post(
         `${API_URL}/profiles/${id}/reports`,
         formData,
         {
           headers: {
-            Authorization: token,
-            "Content-Type": "multipart/form-data"
+            Authorization: formattedToken,
+            "Content-Type": "multipart/form-data",
+            Accept: "application/json" // 👈 Added: Ensures Devise treats it as an API call
           }
         }
       );
 
       alert("Report submitted successfully. Our team will review it.");
-
-      // Clear the form and close the modal
       setReportText("");
       setReportFiles([]);
       setShowReportBox(false);
@@ -139,6 +175,7 @@ const ShowProfile = () => {
     }
   };
 
+  // --- FEEDBACK SUBMISSION LOGIC ---
   const handleSubmitFeedback = async () => {
     if (!checkAuth()) return;
 
@@ -149,6 +186,8 @@ const ShowProfile = () => {
 
     try {
       const token = localStorage.getItem("token");
+      // ✅ Handle Bearer formatting cleanly
+      const formattedToken = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
 
       await axios.post(
         `${API_URL}/profiles/${id}/feedbacks`,
@@ -160,7 +199,8 @@ const ShowProfile = () => {
         },
         {
           headers: {
-            Authorization: token 
+            Authorization: formattedToken,
+            Accept: "application/json" // 👈 CRITICAL FIX: Stops Rails from processing "as HTML"
           }
         }
       );
@@ -208,13 +248,10 @@ const ShowProfile = () => {
           
           {/* LEFT COLUMN: Photo & Description */}
           <div className="w-full md:w-5/12 space-y-6">
-            
-            {/* Header / Name with Report Icon */}
             <div className="flex justify-between items-center pr-2">
               <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900">
                 {profile.name}
               </h1>
-              {/* Trigger the Report Modal */}
               <button 
                 onClick={handleReportClick}
                 className="text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 text-sm font-semibold"
@@ -227,7 +264,6 @@ const ShowProfile = () => {
               </button>
             </div>
 
-            {/* Large Photo */}
             <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
               <img 
                 src={profile.image_url || "https://via.placeholder.com/600x800?text=No+Image"} 
@@ -236,7 +272,6 @@ const ShowProfile = () => {
               />
             </div>
 
-            {/* Description & Categories */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <h3 className="font-bold text-lg mb-3">About Me</h3>
               <p className="text-slate-600 text-sm leading-relaxed mb-4">
@@ -260,8 +295,6 @@ const ShowProfile = () => {
 
           {/* RIGHT COLUMN: Details & Social Accounts */}
           <div className="w-full md:w-7/12 space-y-6 md:mt-[3.25rem]">
-            
-            {/* Details Card */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
               <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-4">
                 Profile Details
@@ -297,7 +330,6 @@ const ShowProfile = () => {
               </div>
             </div>
 
-            {/* Pricing & Social Accounts Card */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
               <div className="text-center mb-6">
                 <p className="text-slate-500 font-medium mb-2">Starting Price</p>
@@ -329,7 +361,10 @@ const ShowProfile = () => {
                 )}
               </div>
 
-              <button className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+              <button
+                onClick={handleChat}
+                className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              >            
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -339,10 +374,8 @@ const ShowProfile = () => {
           </div>
         </div>
 
-        {/* FEEDBACK SECTION (BOTTOM ROW) */}
+        {/* FEEDBACK SECTION */}
         <div className="mt-10 flex flex-col md:flex-row gap-10">
-          
-          {/* Left: Leave Feedback Form */}
           <div className="w-full md:w-5/12">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <h3 className="font-bold text-lg mb-3">Leave Feedback</h3>
@@ -362,7 +395,6 @@ const ShowProfile = () => {
             </div>
           </div>
 
-          {/* Right: Past Feedback / Reviews */}
           <div className="w-full md:w-7/12">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 h-full">
               <h3 className="font-bold text-xl text-slate-900 border-b border-slate-100 pb-4 mb-6">
@@ -422,7 +454,6 @@ const ShowProfile = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Attach Evidence (Images/Screenshots)
                 </label>
-                
                 <input
                   type="file"
                   multiple
@@ -431,16 +462,13 @@ const ShowProfile = () => {
                   className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition-colors cursor-pointer"
                 />
 
-                {/* Show the list of attached files */}
                 {reportFiles.length > 0 && (
                   <div className="mt-3 space-y-2">
                     <p className="text-xs font-semibold text-slate-500">Attached Files:</p>
                     <ul className="max-h-32 overflow-y-auto space-y-1">
                       {reportFiles.map((file, index) => (
                         <li key={index} className="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md">
-                          <span className="text-xs text-slate-600 truncate mr-2">
-                            {file.name}
-                          </span>
+                          <span className="text-xs text-slate-600 truncate mr-2">{file.name}</span>
                           <button
                             type="button"
                             onClick={() => removeFile(index)}
@@ -463,7 +491,6 @@ const ShowProfile = () => {
                 >
                   Cancel
                 </button>
-
                 <button
                   onClick={submitReport}
                   className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"

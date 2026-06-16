@@ -46,6 +46,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="chats" element={<Chats />} />
+          <Route path="chats/:conversationId" element={<Chats />} />
           <Route path="meetings" element={<Meetings />} />
           <Route path="accounts" element={<Accounts />} />
         </Route>

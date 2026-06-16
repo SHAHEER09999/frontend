@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; 
+
 interface Influencer {
   id: number;
   name: string;
@@ -221,14 +222,14 @@ const InfluencersPage = () => {
             return (
               <div
                 key={influencer.id}
-                onClick={() => navigate(`/ShowProfile/${influencer.id}`)} // <-- Add onClick and Route
-                className="group bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col"
+                onClick={() => navigate(`/ShowProfile/${influencer.id}`)}
+                className="group bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col cursor-pointer"
               >
                 {/* Compact Image Container */}
                 <div className="relative overflow-hidden bg-slate-100 aspect-[4/5]">
                   <img
                     src={influencer.image_url || "https://via.placeholder.com/300x400"}
-                    alt={influencer.name}
+                    alt={influencer.name || "Influencer"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded-md border border-slate-100/50 shadow-sm flex items-center gap-1">
@@ -242,7 +243,7 @@ const InfluencersPage = () => {
                 {/* Compact Content */}
                 <div className="p-3 flex flex-col flex-grow">
                   <h3 className="font-bold text-sm text-slate-900 truncate">
-                    {influencer.name}
+                    {influencer.name || "Anonymous"}
                   </h3>
                   
                   <div className="flex items-center text-slate-500 text-[11px] mb-2 mt-0.5">
@@ -254,9 +255,10 @@ const InfluencersPage = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-y-1 text-[11px] text-slate-600 mb-3">
-                    <p><span className="font-medium text-slate-800">Age:</span> {influencer.age}</p>
-                    <p><span className="font-medium text-slate-800">Gender:</span> {influencer.gender.charAt(0)}</p>
-                    <p className="col-span-2 truncate"><span className="font-medium text-slate-800">Lang:</span> {influencer.language}</p>
+                    <p><span className="font-medium text-slate-800">Age:</span> {influencer.age || "N/A"}</p>
+                    {/* 👇 CRASH FIXED HERE 👇 */}
+                    <p><span className="font-medium text-slate-800">Gender:</span> {influencer.gender?.charAt(0) || "-"}</p>
+                    <p className="col-span-2 truncate"><span className="font-medium text-slate-800">Lang:</span> {influencer.language || "N/A"}</p>
                   </div>
 
                   <div className="mt-auto pt-2 border-t border-slate-50 flex items-end justify-between">
