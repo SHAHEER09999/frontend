@@ -2,18 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
-// --- Types ---
-type Campaign = {
-  id: number;
-  name: string;
-};
-
-type MeetingResponse = {
-  id: number;
-  status: string;
-  reason?: string;
-  profile?: { id: number; name: string };
-};
+type Campaign = { id: number; name: string };
+type ChatBrand = { conversation_id: number; brand_id: number; brand_name: string };
+type MeetingResponse = { id: number; status: string; reason?: string; profile?: { id: number; name: string } };
 
 type Meeting = {
   id: number;
@@ -21,9 +12,14 @@ type Meeting = {
   date_time: string;
   location_link: string;
   notes: string;
-  campaign: Campaign;
-  meeting_responses?: MeetingResponse[]; // Seen by brands
-  my_response?: MeetingResponse; // Seen by influencers
+  campaign_id?: number;
+  conversation_id?: number;
+  campaign?: Campaign;
+  conversation?: {
+    brand?: { profile?: { name: string } };
+    influencer?: { profile?: { name: string } };
+  };
+  meeting_responses?: MeetingResponse[];
 };
 
 const API_URL = 'http://localhost:3000';
@@ -35,20 +31,19 @@ const Meetings: React.FC = () => {
 
   const [profileId, setProfileId] = useState<number | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [brandCampaigns, setBrandCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Toggle form visibility
-  const [showForm, setShowForm] = useState(false);
 
-  // --- Brand Form State ---
-  const [campaignId, setCampaignId] = useState('');
+  // Form State
+  const [showForm, setShowForm] = useState(false);
+  const [brandCampaigns, setBrandCampaigns] = useState<Campaign[]>([]);
+  const [chatBrands, setChatBrands] = useState<ChatBrand[]>([]);
+  const [targetId, setTargetId] = useState('');
   const [meetingType, setMeetingType] = useState('online');
   const [dateTime, setDateTime] = useState('');
   const [locationLink, setLocationLink] = useState('');
   const [notes, setNotes] = useState('');
 
-  // --- Influencer Response State ---
+  // Response State
   const [denyingMeetingId, setDenyingMeetingId] = useState<number | null>(null);
   const [denyReason, setDenyReason] = useState('');
 
@@ -60,6 +55,8 @@ const Meetings: React.FC = () => {
   useEffect(() => {
     if (role === 'brand' && profileId) {
       fetchBrandCampaigns(profileId);
+    } else if (role === 'influencer' && profileId) {
+      fetchChatBrands();
     }
   }, [profileId, role]);
 
@@ -76,9 +73,19 @@ const Meetings: React.FC = () => {
     try {
       const res = await axios.get(`${API_URL}/profiles/${id}/campaigns`, { headers: authHeaders });
       setBrandCampaigns(res.data);
-      if (res.data.length > 0) setCampaignId(res.data[0].id.toString());
+      if (res.data.length > 0) setTargetId(res.data[0].id.toString());
     } catch (error) {
-      console.error('Failed to load campaigns for dropdown', error);
+      console.error('Failed to load campaigns', error);
+    }
+  };
+
+  const fetchChatBrands = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/meetings/chat_brands`, { headers: authHeaders });
+      setChatBrands(res.data);
+      if (res.data.length > 0) setTargetId(res.data[0].conversation_id.toString());
+    } catch (error) {
+      console.error('Failed to load chat brands', error);
     }
   };
 
@@ -93,29 +100,42 @@ const Meetings: React.FC = () => {
     }
   };
 
-  // --- Brand Actions ---
   const createMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post(
-        `${API_URL}/meetings`,
-        {
-          meeting: {
-            campaign_id: parseInt(campaignId),
+      if (role === 'brand') {
+        await axios.post(
+          `${API_URL}/meetings`,
+          {
+            meeting: {
+              campaign_id: parseInt(targetId),
+              meeting_type: meetingType,
+              date_time: dateTime,
+              location_link: locationLink,
+              notes: notes,
+            },
+          },
+          { headers: authHeaders }
+        );
+      } else {
+        await axios.post(
+          `${API_URL}/meetings/create_chat_meeting`,
+          {
+            conversation_id: parseInt(targetId),
             meeting_type: meetingType,
             date_time: dateTime,
             location_link: locationLink,
             notes: notes,
           },
-        },
-        { headers: authHeaders }
-      );
+          { headers: authHeaders }
+        );
+      }
+      
       fetchMeetings();
       setDateTime('');
       setLocationLink('');
       setNotes('');
-      setShowForm(false); // Hide the form automatically after creation
-      alert('Meeting created successfully! 🎉');
+      setShowForm(false);
     } catch (error) {
       console.error('Failed to create meeting', error);
       alert('Error creating meeting. Please check inputs.');
@@ -132,7 +152,6 @@ const Meetings: React.FC = () => {
     }
   };
 
-  // --- Influencer Actions ---
   const submitResponse = async (meetingId: number, status: 'accepted' | 'denied') => {
     if (status === 'denied' && !denyReason.trim()) {
       alert('Please provide a reason for denying.');
@@ -144,7 +163,7 @@ const Meetings: React.FC = () => {
         { status, reason: denyReason },
         { headers: authHeaders }
       );
-      fetchMeetings(); // Refresh to update response state
+      fetchMeetings();
       setDenyingMeetingId(null);
       setDenyReason('');
     } catch (error) {
@@ -157,230 +176,241 @@ const Meetings: React.FC = () => {
     return <div className="flex justify-center items-center min-h-screen text-gray-500 font-medium">Loading meetings...</div>;
   }
 
+  // Split meetings into two arrays for the UI
+  const myCreatedMeetings = meetings.filter((m) => (role === 'brand' && m.campaign_id) || (role === 'influencer' && m.conversation_id));
+  const meetingRequests = meetings.filter((m) => !((role === 'brand' && m.campaign_id) || (role === 'influencer' && m.conversation_id)));
+
   return (
-    <div className="h-full w-full overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="h-full w-full overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar bg-white">
+      <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* ========================================= */}
-        {/* BRAND VIEW                                */}
-        {/* ========================================= */}
-        {role === 'brand' && (
-          <>
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0f172a] tracking-tight">Manage Meetings</h1>
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className={`font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200 shadow-sm ${
-                  showForm 
-                    ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                }`}
-              >
-                {showForm ? 'Cancel' : 'Create Meeting'}
-              </button>
-            </div>
+        {/* Header Section */}
+        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800 tracking-tight">Meeting Center</h1>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className={`font-bold text-xs px-4 py-2 rounded-lg transition duration-200 shadow-sm ${
+              showForm 
+                ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' 
+                : 'bg-teal-600 hover:bg-teal-700 text-white'
+            }`}
+          >
+            {showForm ? 'Cancel' : '+ New Meeting'}
+          </button>
+        </div>
 
-            {/* Conditionally Render Create Meeting Form */}
-            {showForm && (
-              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm transition duration-300">
-                <h2 className="font-bold text-[#0f172a] mb-4 text-lg">Schedule a Meeting</h2>
-                <form onSubmit={createMeeting} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-600 uppercase">Select Campaign</label>
-                      <select
-                        value={campaignId}
-                        onChange={(e) => setCampaignId(e.target.value)}
-                        required
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                      >
-                        <option value="" disabled>Select a campaign...</option>
-                        {brandCampaigns.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-600 uppercase">Meeting Type</label>
-                      <select
-                        value={meetingType}
-                        onChange={(e) => setMeetingType(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                      >
-                        <option value="online">Online</option>
-                        <option value="physical">Physical</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-600 uppercase">Date & Time</label>
-                      <input
-                        type="datetime-local"
-                        value={dateTime}
-                        onChange={(e) => setDateTime(e.target.value)}
-                        required
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-600 uppercase">Link or Location Address</label>
-                      <input
-                        type="text"
-                        placeholder="Zoom link or Cafe Name"
-                        value={locationLink}
-                        onChange={(e) => setLocationLink(e.target.value)}
-                        required
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-                      />
-                    </div>
-                    <div className="space-y-1 md:col-span-2">
-                      <label className="text-xs font-semibold text-gray-600 uppercase">Notes / Purpose</label>
-                      <textarea
-                        placeholder="What is this meeting about?"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        required
-                        rows={3}
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="pt-2 flex justify-end">
-                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200">
-                      Schedule Meeting
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* Brand Meetings List */}
-            <div className="space-y-4">
-              <h2 className="font-bold text-[#0f172a] text-xl">Scheduled Meetings</h2>
-              {meetings.length === 0 ? (
-                <div className="text-center py-10 bg-gray-50 border border-dashed border-gray-300 rounded-3xl">
-                  <p className="text-gray-500 font-medium">No meetings scheduled yet.</p>
+        {/* Create Meeting Form */}
+        {showForm && (
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-sm transition duration-300">
+            <h2 className="font-bold text-gray-800 mb-4 text-base">Schedule a Meeting</h2>
+            <form onSubmit={createMeeting} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    {role === 'brand' ? 'Select Campaign' : 'Select Brand Chat'}
+                  </label>
+                  <select
+                    value={targetId}
+                    onChange={(e) => setTargetId(e.target.value)}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  >
+                    <option value="" disabled>Select an option...</option>
+                    {role === 'brand' 
+                      ? brandCampaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)
+                      : chatBrands.map((cb) => <option key={cb.conversation_id} value={cb.conversation_id}>{cb.brand_name}</option>)
+                    }
+                  </select>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {meetings.map((meeting) => (
-                    <div key={meeting.id} className="bg-white border border-gray-200 flex flex-col justify-between rounded-3xl p-6 shadow-sm">
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-bold px-3 py-1 rounded-full capitalize">
-                            {meeting.meeting_type}
-                          </span>
-                          <button onClick={() => deleteMeeting(meeting.id)} className="text-gray-400 hover:text-red-600 p-1">
-                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                          </button>
-                        </div>
-                        <h3 className="font-bold text-lg text-[#0f172a] mb-1">Campaign: {meeting.campaign.name}</h3>
-                        <p className="text-gray-500 text-sm font-medium mb-3">
-                          {new Date(meeting.date_time).toLocaleString()} • {meeting.location_link}
-                        </p>
-                        <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-xl border border-gray-100 mb-4">{meeting.notes}</p>
-                      </div>
 
-                      {/* Brand views Influencer Responses at the bottom */}
-                      <div className="border-t border-gray-100 pt-4 mt-2">
-                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Influencer Responses</h4>
-                        {meeting.meeting_responses?.length === 0 ? (
-                           <p className="text-xs text-gray-400 italic">No responses yet</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {meeting.meeting_responses?.map((res) => (
-                              <div key={res.id} className="bg-gray-50 p-2 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-gray-100">
-                                <span className="text-sm font-semibold text-gray-700">{res.profile?.name}</span>
-                                <div className="flex flex-col sm:items-end">
-                                  <span className={`text-xs font-bold px-2 py-1 rounded-md ${res.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                    {res.status.toUpperCase()}
-                                  </span>
-                                  {res.status === 'denied' && (
-                                    <span className="text-xs text-red-500 mt-1 italic">Reason: {res.reason}</span>
-                                  )}
-                                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Meeting Type</label>
+                  <select
+                    value={meetingType}
+                    onChange={(e) => setMeetingType(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  >
+                    <option value="online">Online</option>
+                    <option value="physical">Physical</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={dateTime}
+                    onChange={(e) => setDateTime(e.target.value)}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Link or Location</label>
+                  <input
+                    type="text"
+                    placeholder="Zoom link or Location Name"
+                    value={locationLink}
+                    onChange={(e) => setLocationLink(e.target.value)}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Notes / Purpose</label>
+                  <textarea
+                    placeholder="What is this meeting about?"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    required
+                    rows={2}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white resize-none"
+                  />
+                </div>
+              </div>
+              <div className="pt-2 flex justify-end">
+                <button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg transition duration-200">
+                  Schedule Meeting
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Dual Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          
+          {/* Column 1: Meetings You Created */}
+          <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+            <h2 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+              Meetings You Created
+            </h2>
+            <div className="space-y-3">
+              {myCreatedMeetings.length === 0 ? (
+                <p className="text-xs text-gray-400 italic text-center py-6">You haven't scheduled any meetings.</p>
+              ) : (
+                myCreatedMeetings.map((meeting) => (
+                  <div key={meeting.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="bg-teal-50 text-teal-700 border border-teal-100 text-[10px] font-bold px-2 py-0.5 rounded-md capitalize">
+                        {meeting.meeting_type}
+                      </span>
+                      <button onClick={() => deleteMeeting(meeting.id)} className="text-gray-300 hover:text-red-500 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <h3 className="font-bold text-sm text-gray-800 truncate">
+                      {meeting.campaign_id ? `Campaign: ${meeting.campaign?.name}` : 'Chat Direct Meeting'}
+                    </h3>
+                    
+                    <p className="text-gray-500 text-xs font-medium mb-2 mt-1">
+                      {new Date(meeting.date_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })} <br/> 
+                      <span className="text-gray-400">{meeting.location_link}</span>
+                    </p>
+                    <p className="text-gray-600 text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 mb-3 line-clamp-2">{meeting.notes}</p>
+
+                    <div className="border-t border-gray-100 pt-3">
+                      <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Partner Responses</h4>
+                      {(!meeting.meeting_responses || meeting.meeting_responses.length === 0) ? (
+                        <p className="text-[11px] text-gray-400 italic">No responses yet</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {meeting.meeting_responses.map((res) => (
+                            <div key={res.id} className="bg-gray-50 px-2 py-1.5 rounded flex items-center justify-between gap-2 border border-gray-100">
+                              <span className="text-[11px] font-semibold text-gray-600 truncate">{res.profile?.name}</span>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm ${res.status === 'accepted' ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`}>
+                                  {res.status.toUpperCase()}
+                                </span>
                               </div>
-                            ))}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Column 2: Meeting Requests */}
+          <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+            <h2 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+              Meeting Requests
+            </h2>
+            <div className="space-y-3">
+              {meetingRequests.length === 0 ? (
+                <p className="text-xs text-gray-400 italic text-center py-6">No incoming meeting requests.</p>
+              ) : (
+                meetingRequests.map((meeting) => {
+                  const myResponse = meeting.meeting_responses?.find((res) => res.profile?.id === profileId);
+
+                  return (
+                    <div key={meeting.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="bg-gray-100 text-gray-600 border border-gray-200 text-[10px] font-bold px-2 py-0.5 rounded-md capitalize">
+                          {meeting.meeting_type}
+                        </span>
+                      </div>
+                      
+                      <h3 className="font-bold text-sm text-gray-800 truncate">
+                        {meeting.campaign_id ? `Campaign: ${meeting.campaign?.name}` : 'Chat Direct Meeting'}
+                      </h3>
+                      
+                      <p className="text-gray-500 text-xs font-medium mb-2 mt-1">
+                        {new Date(meeting.date_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })} <br/> 
+                        <span className="text-teal-600">{meeting.location_link}</span>
+                      </p>
+                      <p className="text-gray-600 text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 mb-3">{meeting.notes}</p>
+
+                      <div className="mt-1 border-t border-gray-100 pt-3">
+                        {!myResponse ? (
+                          denyingMeetingId === meeting.id ? (
+                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-200 space-y-2">
+                              <input 
+                                type="text" 
+                                placeholder="Reason for denial..." 
+                                className="w-full text-xs p-1.5 border border-gray-300 rounded focus:outline-none focus:border-red-400 bg-white"
+                                value={denyReason}
+                                onChange={(e) => setDenyReason(e.target.value)}
+                              />
+                              <div className="flex gap-1.5">
+                                <button onClick={() => submitResponse(meeting.id, 'denied')} className="flex-1 bg-red-500 text-white text-[10px] font-bold py-1.5 rounded hover:bg-red-600 transition">Submit Denial</button>
+                                <button onClick={() => setDenyingMeetingId(null)} className="flex-1 bg-gray-200 text-gray-600 text-[10px] font-bold py-1.5 rounded hover:bg-gray-300 transition">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button onClick={() => submitResponse(meeting.id, 'accepted')} className="flex-1 bg-teal-600 text-white font-bold text-xs py-2 rounded-lg hover:bg-teal-700 transition">Accept</button>
+                              <button onClick={() => setDenyingMeetingId(meeting.id)} className="flex-1 bg-white border border-gray-300 text-gray-600 font-bold text-xs py-2 rounded-lg hover:bg-gray-50 transition">Deny</button>
+                            </div>
+                          )
+                        ) : (
+                          <div className="text-center py-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <p className="text-xs font-medium text-gray-500">
+                              Status: <span className={`font-bold ${myResponse.status === 'accepted' ? 'text-teal-600' : 'text-red-500'}`}>{myResponse.status.toUpperCase()}</span>
+                            </p>
+                            {myResponse.status === 'denied' && <p className="text-[10px] text-gray-400 mt-0.5">Reason: {myResponse.reason}</p>}
                           </div>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })
               )}
             </div>
-          </>
-        )}
+          </div>
 
-        {/* ========================================= */}
-        {/* INFLUENCER VIEW                           */}
-        {/* ========================================= */}
-        {role === 'influencer' && (
-          <>
-            <div className="flex items-center justify-between pb-2">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0f172a] tracking-tight">Campaign Meetings</h1>
-            </div>
-            
-            {meetings.length === 0 ? (
-              <div className="text-center py-12 bg-white border border-gray-200 rounded-3xl shadow-sm">
-                <p className="text-gray-500 font-medium">No meetings scheduled for the campaigns you've applied to.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {meetings.map((meeting) => (
-                  <div key={meeting.id} className="bg-white border border-gray-200 flex flex-col justify-between rounded-3xl p-6 shadow-sm">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                         <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-bold px-3 py-1 rounded-full capitalize">
-                            {meeting.meeting_type}
-                          </span>
-                          {meeting.my_response && (
-                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${meeting.my_response.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                              {meeting.my_response.status.toUpperCase()}
-                            </span>
-                          )}
-                      </div>
-                      <h3 className="font-bold text-lg text-[#0f172a] mb-1">Campaign: {meeting.campaign.name}</h3>
-                      <p className="text-gray-500 text-sm font-medium mb-3">
-                        {new Date(meeting.date_time).toLocaleString()} • {meeting.location_link}
-                      </p>
-                      <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-xl border border-gray-100 mb-6">{meeting.notes}</p>
-                    </div>
-
-                    {/* Influencer Actions */}
-                    {!meeting.my_response ? (
-                      denyingMeetingId === meeting.id ? (
-                        <div className="bg-red-50 p-3 rounded-xl border border-red-100 space-y-2">
-                          <input 
-                            type="text" 
-                            placeholder="Why are you denying this meeting?" 
-                            className="w-full text-sm p-2 border border-red-200 rounded-lg focus:outline-none"
-                            value={denyReason}
-                            onChange={(e) => setDenyReason(e.target.value)}
-                          />
-                          <div className="flex gap-2">
-                            <button onClick={() => submitResponse(meeting.id, 'denied')} className="flex-1 bg-red-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-red-700">Submit Denial</button>
-                            <button onClick={() => setDenyingMeetingId(null)} className="flex-1 bg-gray-200 text-gray-700 text-xs font-bold py-2 rounded-lg hover:bg-gray-300">Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-3">
-                          <button onClick={() => submitResponse(meeting.id, 'accepted')} className="flex-1 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl hover:bg-emerald-700 transition">Accept</button>
-                          <button onClick={() => setDenyingMeetingId(meeting.id)} className="flex-1 bg-white border-2 border-red-200 text-red-600 font-bold text-sm py-3 rounded-xl hover:bg-red-50 transition">Deny</button>
-                        </div>
-                      )
-                    ) : (
-                      <div className="text-center py-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">You have {meeting.my_response.status} this meeting.</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        </div>
       </div>
     </div>
   );

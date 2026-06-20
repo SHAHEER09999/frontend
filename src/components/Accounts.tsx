@@ -101,7 +101,7 @@ const Accounts: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[400px] text-gray-500 font-medium gap-2">
-        <Loader2 className="animate-spin text-indigo-600" size={32} />
+        <Loader2 className="animate-spin text-teal-600" size={32} />
         <p>Loading payment accounts...</p>
       </div>
     );
@@ -121,7 +121,7 @@ const Accounts: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6 p-1">
       {/* Header Section */}
       <div>
-        <h2 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">
+        <h2 className="text-2xl font-extrabold text-gray-800 tracking-tight">
           Payout Accounts
         </h2>
         <p className="text-sm text-gray-500">
@@ -132,7 +132,7 @@ const Accounts: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Side: Creation Form Card */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4 lg:col-span-1">
-          <h3 className="font-bold text-[#0f172a] text-base">Add New Account</h3>
+          <h3 className="font-bold text-gray-800 text-base">Add New Account</h3>
           
           <div className="space-y-3">
             <div>
@@ -145,7 +145,7 @@ const Accounts: React.FC = () => {
                 value={accountName}
                 disabled={isMaxAccountsReached || isSubmitting}
                 onChange={(e) => setAccountName(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition"
+                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition"
               />
             </div>
 
@@ -159,14 +159,14 @@ const Accounts: React.FC = () => {
                 value={accountNumber}
                 disabled={isMaxAccountsReached || isSubmitting}
                 onChange={(e) => setAccountNumber(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition"
+                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition"
               />
             </div>
 
             <button
               onClick={addAccount}
               disabled={isMaxAccountsReached || isSubmitting}
-              className="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition duration-200 disabled:cursor-not-allowed shadow-sm"
+              className="w-full mt-2 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition duration-200 disabled:cursor-not-allowed shadow-sm"
             >
               {isSubmitting ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -187,8 +187,9 @@ const Accounts: React.FC = () => {
         {/* Right Side: Saved Accounts Deck List */}
         <div className="space-y-4 lg:col-span-2">
           <div className="flex justify-between items-center px-1">
-            <h3 className="font-bold text-[#0f172a] text-base">Linked Accounts</h3>
-            <span className="text-xs font-bold text-gray-500 bg-gray-100 border px-2.5 py-1 rounded-full">
+            <h3 className="font-bold text-gray-800 text-base">Linked Accounts</h3>
+            {/* Pink Accent Badge */}
+            <span className="text-xs font-bold text-pink-600 bg-pink-50 border border-pink-100 px-2.5 py-1 rounded-full">
               {accounts.length} / 3 Active
             </span>
           </div>
@@ -207,7 +208,8 @@ const Accounts: React.FC = () => {
                   className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:border-gray-300 transition duration-200 min-h-[140px]"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="p-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600">
+                    {/* Teal Accent Icon Box */}
+                    <div className="p-2.5 bg-teal-50 border border-teal-100 rounded-xl text-teal-600">
                       <CreditCard size={20} />
                     </div>
                     <button

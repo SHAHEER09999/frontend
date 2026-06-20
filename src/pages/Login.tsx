@@ -1,87 +1,144 @@
-import {  useState } from "react"
-import { Link, useNavigate } from "react-router"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/auth";
 import { useAuth } from "../context/AuthContext";
+import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { loginUser } = useAuth();
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
+      setIsSubmitting(true);
       const { data, token } = await login(email, password);
 
       if (token) {
         loginUser(data.data, token);
         const role = data.data.role;
-        if (role === "admin"){ 
+        if (role === "admin") { 
           navigate("/Admin-Dashboard");
-        }
-        else{
+        } else {
           navigate("/User-Dashboard");
         }
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Invalid email or password configuration.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
   return (
-    <div className="bg-gray-50">
-      <div className="min-h-full flex flex-col items-center justify-center py-6 px-4">
-        <div className="max-w-[480px] w-full">
-          <div className="p-6 sm:p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
-            {error && (
-              <div className="bg-red-100 text-red-600 p-3 rounded-md text-sm">
-                {error}   
-              </div>
-            )}
-            <h1 className="text-slate-900 text-center text-3xl font-semibold">Welcome Back</h1>
-            <form onSubmit={handleSubmit} className="mt-12 space-y-6">
-              <div>
-                <label className="text-slate-900 text-sm font-medium mb-2 block">Email</label>
-                <div className="relative flex items-center">
-                  <input name="username" type="email" required className="w-full text-slate-900 text-sm border border-slate-300 px-4 py-3 pr-8 rounded-md outline-blue-600" placeholder="Enter email" value = {email} onChange={(e) => setEmail(e.target.value)} />
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="#bbb" stroke="#bbb" className="w-4 h-4 absolute right-4" viewBox="0 0 24 24">
-                    <circle cx="10" cy="7" r="6" data-original="#000000"></circle>
-                    <path d="M14 15H6a5 5 0 0 0-5 5 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 5 5 0 0 0-5-5zm8-4h-2.59l.3-.29a1 1 0 0 0-1.42-1.42l-2 2a1 1 0 0 0 0 1.42l2 2a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42l-.3-.29H22a1 1 0 0 0 0-2z" data-original="#000000"></path>
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <label className="text-slate-900 text-sm font-medium mb-2 block">Password</label>
-                <div className="relative flex items-center">
-                  <input name="password" type="password" required className="w-full text-slate-900 text-sm border border-slate-300 px-4 py-3 pr-8 rounded-md outline-blue-600" placeholder="Enter password" value = {password} onChange={(e) => setPassword(e.target.value)} />
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="#bbb" stroke="#bbb" className="w-4 h-4 absolute right-4 cursor-pointer" viewBox="0 0 128 128">
-                    <path d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z" data-original="#000000"></path>
-                  </svg>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                
-                <div className="text-sm">
-                  <Link to="/forgot-password" className="text-blue-600 hover:underline font-semibold">Forgot your password?</Link>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-16 px-4">
+      <div className="max-w-[480px] w-full">
+        {/* Card - Increased Vertical Padding */}
+        <div className="py-10 px-6 sm:py-14 sm:px-12 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-8">
+          
+          <div className="text-center space-y-3">
+            <h1 className="text-gray-800 text-3xl font-extrabold tracking-tight">
+              Welcome Back
+            </h1>
+            <p className="text-xs text-gray-500 font-medium">
+              Access your workspace panel dashboard to resume collaborations
+            </p>
+          </div>
 
-              <div className="!mt-12">
-                <button type="submit" className="w-full py-2 px-4 text-[15px] font-medium tracking-wide rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none cursor-pointer">
-                  Sign in
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl text-xs font-semibold flex items-center gap-2.5">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email Field */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                Email Address
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-gray-400">
+                  <Mail size={16} />
+                </span>
+                <input 
+                  name="username" 
+                  type="email" 
+                  required 
+                  placeholder="name@example.com"
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  className="w-full text-gray-800 text-sm border border-gray-300 pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-xs font-bold text-pink-600 hover:text-pink-700 transition">
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-gray-400">
+                  <Lock size={16} />
+                </span>
+                <input 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  placeholder="Enter your security token"
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  className="w-full text-gray-800 text-sm border border-gray-300 pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 text-gray-400 hover:text-gray-600 transition"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <p className="text-slate-900 text-sm !mt-6 text-center">Don't have an account? <Link to="/signup" className="text-blue-600 hover:underline ml-1 whitespace-nowrap font-semibold">Register here</Link></p>
-            </form>
-          </div>
+            </div>
+
+            {/* Submit Action Block */}
+            <div className="pt-4">
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white font-bold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 transition duration-200 disabled:cursor-not-allowed shadow-sm"
+              >
+                <LogIn size={16} />
+                {isSubmitting ? "Authenticating..." : "Sign In"}
+              </button>
+            </div>
+
+            <p className="text-gray-500 text-xs text-center pt-4 font-medium">
+              Don't have an account?{" "}
+              <Link to="/signup" className="text-teal-600 hover:text-teal-700 font-bold ml-1 transition">
+                Register here
+              </Link>
+            </p>
+          </form>
+
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

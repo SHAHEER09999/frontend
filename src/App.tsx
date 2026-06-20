@@ -22,6 +22,7 @@ import ManageUser from "./components/ui/ManageUser";
 import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
 import InfluencersPage from "./pages/InfluencersPage";
 import ShowProfile from "./components/ShowProfile";
+import TermsAndPrivacy from "./pages/TermsAndPolicy";
 
 function App() {
 
@@ -37,6 +38,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/influencers" element={<InfluencersPage />} />
         <Route path="/ShowProfile/:id" element={<ShowProfile />} />
+        <Route path="/terms-and-privacy" element={<TermsAndPrivacy />} />
         <Route path="User-Dashboard" element={
           <ProtectedRoute>
             <UserDashboardLayout />

@@ -372,7 +372,7 @@ const Profile = () => {
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex-1 sm:flex-initial bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200"
+              className="flex-1 sm:flex-initial bg-[#0f172a] hover:bg-teal-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition duration-200"
             >
               Edit Profile
             </button>
@@ -399,7 +399,7 @@ const Profile = () => {
 
           <button
             onClick={handleDeleteRequest}
-            className="bg-red-500 hover:bg-red-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition duration-200"
+            className="bg-pink-500 hover:bg-red-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition duration-200"
           >
             <Trash2 size={16} />
             <span className="hidden md:inline">Delete Account</span>
@@ -444,8 +444,8 @@ const Profile = () => {
                       key={cat}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition ${
                         isChecked
-                          ? "bg-indigo-50 border-indigo-300 text-indigo-600"
-                          : "bg-gray-50 border-gray-200 text-gray-600"
+                          ? "bg-gray-50 border-teal-300 text-pink-600"
+                          : "bg-gray-50 border-pink-200 text-gray-600"
                       } ${isDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       <input
@@ -477,7 +477,7 @@ const Profile = () => {
                   selectedCategories.map((cat) => (
                     <span
                       key={cat}
-                      className="text-xs font-semibold text-[#4f46e5] bg-[#edf2ff] border border-[#dbe4ff] px-3 py-1.5 rounded-full"
+                      className="text-xs font-semibold text-[#4f46e5] bg-gray-50 border border-teal-300 px-3 py-1.5 rounded-full"
                     >
                       {cat}
                     </span>
@@ -575,7 +575,7 @@ const Profile = () => {
               <>
                 {isEditing ? (
                   <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-gray-500">$</span>
+                    <span className="text-xs font-bold text-gray-500">Pkr</span>
                     <input
                       type="number"
                       name="price"
@@ -588,7 +588,7 @@ const Profile = () => {
                 ) : (
                   formData.price && (
                     <span className="text-sm font-extrabold text-[#4f46e5] bg-[#edf2ff] border border-[#dbe4ff] px-2.5 py-1 rounded-xl shadow-sm">
-                      ${Number(formData.price).toFixed(2)}
+                      Pkr {Number(formData.price).toFixed(2)}
                     </span>
                   )
                 )}
